@@ -4,7 +4,7 @@
 #include <json-c/json.h>
 #include <sys/stat.h>
 
-#define GRIB_FILES 19
+#define GRIB_FILES 49
 #define NEARBY_SIZE 4
 
 #define GetString(fieldData, property) \
