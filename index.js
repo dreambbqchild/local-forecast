@@ -1,4 +1,4 @@
-const hrrr = require('./data/hrrr.json');
+const hrrr = require('./build/hrrr.json');
 const baseDate = new Date(hrrr.date);
 const timeZone = 'America/Chicago';
 const timeStringOptions = { timeZone: timeZone, hour: '2-digit', minute:'2-digit' };
