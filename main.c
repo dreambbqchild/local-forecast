@@ -1,9 +1,8 @@
 #include "declarations.h"
 #include "eccodes.h"
 
-#define LOCATION_LEN 8
-
 extern Location locations[];
+extern const int locationsLength;
 
 const int PTYPE_RAIN = 1 << 0,
     PTYPE_FREEZING_RAIN = 1 << 1,
@@ -32,14 +31,14 @@ double ToInHg(double pa) {
     return pa / 3386.0;
 }
 
-double WindDirection(double u, double v) { 
-    return (180 / 3.14159265358979323846) * atan2(u, v) + 180; 
+double WindDirection(double u, double v) {
+    return (180 / 3.14159265358979323846) * atan2(u, v) + 180;
 }
 
 codes_fieldset* GetFieldSet() {
     int err = 0, gribFileCount = 0;
     char** gribFiles = (char**)malloc(sizeof(char*) * GRIB_FILES );
-    
+
     for(gribFileCount = 0; gribFileCount < GRIB_FILES; gribFileCount++)
     {
         struct stat statBuffer;
@@ -85,7 +84,7 @@ void PrepareHomeData(json_object* root, codes_handle* h, double lat, double lon,
     size_t nearbySize = NEARBY_SIZE;
     codes_nearest* nearest = codes_grib_nearest_new(h, &err);
     CODES_CHECK(codes_grib_nearest_find(nearest, h, lat, lon, flags, homeData->lats, homeData->lons, homeData->values, homeData->distances, homeData->indexes, &nearbySize), "Unable to find nearest");
-    
+
     json_object* latLongs = json_object_new_array();
     json_object_object_add(root, "grid", latLongs);
     for(int i = 0; i < NEARBY_SIZE; i++) {
@@ -137,7 +136,7 @@ int main(int argc, char* argv[])
     int err = 0, gribFileCount = 0;
     long lastStep = 0;
     codes_handle* h = NULL;
-    
+
     FieldData fieldData = {0};
 
     size_t length = 0;
@@ -146,7 +145,7 @@ int main(int argc, char* argv[])
 
     json_object* root = json_object_new_object();
 
-    for(int i = 0; i < LOCATION_LEN; i++)
+    for(int i = 0; i < locationsLength; i++)
     {
         locations[i].root = json_object_new_object();
         json_object_object_add(root, locations[i].name, locations[i].root);
@@ -165,9 +164,9 @@ int main(int argc, char* argv[])
     {
         CODES_CHECK(codes_get_long(h, "step", &fieldData.step), "Unable to get step");
         if(fieldData.step != lastStep){
-            for(int i = 0; i < LOCATION_LEN; i++)
+            for(int i = 0; i < locationsLength; i++)
                 FinishStep(lastStep, &locations[i].windData, &locations[i].precipData, locations[i].wind, locations[i].precip);
-        }        
+        }
         lastStep = fieldData.step;
 
         if(isFirst)
@@ -178,7 +177,7 @@ int main(int argc, char* argv[])
         GetString(fieldData, typeOfLevel)
 
         if (isFirst) {
-            for(int i = 0; i < LOCATION_LEN; i++)
+            for(int i = 0; i < locationsLength; i++)
                 PrepareHomeData(locations[i].root, h, locations[i].lat, locations[i].lon, &locations[i].homeData);
         }
 
@@ -188,7 +187,7 @@ int main(int argc, char* argv[])
         CODES_CHECK(codes_get_double_array(h, "values", values, &valuesLen), "unable to get values");
         printf("%ld %s %s %s %g\n", fieldData.step, fieldData.shortName, fieldData.typeOfLevel, fieldData.level, values[locations[0].homeData.indexes[0]]);
 
-        for(int i = 0; i < LOCATION_LEN; i++) {
+        for(int i = 0; i < locationsLength; i++) {
             json_object* currentJson = NULL;
             double* currentDoubleArray = NULL;
             int* currentIntArray = NULL;
@@ -265,7 +264,7 @@ int main(int argc, char* argv[])
         isFirst = 0;
     }
 
-    for(int i = 0; i < LOCATION_LEN; i++)
+    for(int i = 0; i < locationsLength; i++)
        FinishStep(lastStep, &locations[i].windData, &locations[i].precipData, locations[i].wind, locations[i].precip);
 
     codes_fieldset_delete(set);
