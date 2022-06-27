@@ -63,7 +63,7 @@ codes_fieldset* GetFieldSet() {
     return set;
 }
 
-void AddDate(codes_handle* h, json_object* root) {
+int AddDate(codes_handle* h, json_object* root) {
     char isoDate[25] = {0};
     long dataDate = 0, dataTime = 0;
     CODES_CHECK(codes_get_long(h, "dataDate", &dataDate), "Unable to get dataDate");
@@ -77,6 +77,7 @@ void AddDate(codes_handle* h, json_object* root) {
     sprintf(isoDate, "%04d-%02d-%02dT%02d:00:00.000Z", year, month, day, hour);
 
     json_object_object_add(root, "date", json_object_new_string(isoDate));
+    return hour;
 }
 
 void PrepareHomeData(json_object* root, codes_handle* h, double lat, double lon, HomeData* homeData) {
@@ -133,7 +134,7 @@ void FinishStep(long step, WindData* windData, PrecipData* precipData, json_obje
 int main(int argc, char* argv[])
 {
     char isFirst = 1;
-    int err = 0, gribFileCount = 0;
+    int err = 0, hour = 0;
     long lastStep = 0;
     codes_handle* h = NULL;
 
@@ -172,7 +173,7 @@ int main(int argc, char* argv[])
         lastStep = fieldData.step;
 
         if(isFirst)
-            AddDate(h, root);
+            hour = AddDate(h, root);
 
         GetString(fieldData, shortName)
         GetString(fieldData, level)
@@ -271,7 +272,13 @@ int main(int argc, char* argv[])
 
     codes_fieldset_delete(set);
 
-    json_object_to_file("hrrr.json", root);
+    char fileName[16] = {0};
+    sprintf(fileName, "hrrr-%02d.json", hour);
+    json_object_to_file(fileName, root);
+
+    FILE* lastRun = fopen("lastRun", "w");
+    fprintf(lastRun, "%02d", hour);
+    fclose(lastRun);
 
     json_object_put(root);
 }

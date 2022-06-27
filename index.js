@@ -1,4 +1,4 @@
-const hrrr = require('./build/hrrr.json');
+const hrrr = require(`./build/hrrr-${process.argv[2]}.json`);
 const baseDate = new Date(hrrr.date);
 const timeZone = 'America/Chicago';
 const timeStringOptions = { timeZone: timeZone, hour: '2-digit', minute:'2-digit' };
@@ -18,7 +18,8 @@ const findNearest = (location) => {
 
 console.log(`${baseDate.toLocaleDateString('en-US', { timeZone })} ${baseDate.toLocaleTimeString('en-US', timeStringOptions)}`);
 for(const [key, value] of Object.entries(hrrr.locations))
-{    console.log(key);
+{
+    console.log(key);
     const index = findNearest(value);
     for(let i = 0; i < value.temperature.length; i++)
     {
