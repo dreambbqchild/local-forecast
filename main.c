@@ -144,11 +144,13 @@ int main(int argc, char* argv[])
     codes_fieldset* set = GetFieldSet();
 
     json_object* root = json_object_new_object();
+    json_object* objLocations = json_object_new_object();
+    json_object_object_add(root, "locations", objLocations);
 
     for(int i = 0; i < locationsLength; i++)
     {
         locations[i].root = json_object_new_object();
-        json_object_object_add(root, locations[i].name, locations[i].root);
+        json_object_object_add(objLocations, locations[i].name, locations[i].root);
         AddJsonArray(i, locations[i].root, cape)
         AddJsonArray(i, locations[i].root, dewpoint)
         AddJsonArray(i, locations[i].root, lightning)

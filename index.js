@@ -17,12 +17,8 @@ const findNearest = (location) => {
 }
 
 console.log(`${baseDate.toLocaleDateString('en-US', { timeZone })} ${baseDate.toLocaleTimeString('en-US', timeStringOptions)}`);
-for(const [key, value] of Object.entries(hrrr))
-{
-    if(key === 'date')
-        continue;
-
-    console.log(key);
+for(const [key, value] of Object.entries(hrrr.locations))
+{    console.log(key);
     const index = findNearest(value);
     for(let i = 0; i < value.temperature.length; i++)
     {
@@ -38,7 +34,7 @@ for(const [key, value] of Object.entries(hrrr))
         const windDirection = `${parseInt(value.wind[i][index].dir)}`.padStart(3);
         const windSpeed = `${parseInt(value.wind[i][index].speed)}`.padStart(3);
         const windGust = `${parseInt(value.wind[i][index].gust)}`.padStart(3);
-        
+
         console.log(`${time} ${temperature} ${dewpoint} ${rate} ${types} ${pressure} ${tcc} ${visibility} ${windDirection} ${windSpeed} ${windGust}`);
     }
     console.log();
