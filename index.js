@@ -16,6 +16,8 @@ const findNearest = (location) => {
     return result;
 }
 
+const addHoursToDate = (date, hours) => new Date(date.getTime() + hours * 60 * 60 * 1000);
+
 console.log(`${baseDate.toLocaleDateString('en-US', { timeZone })} ${baseDate.toLocaleTimeString('en-US', timeStringOptions)}`);
 for(const [key, value] of Object.entries(hrrr.locations))
 {
@@ -23,7 +25,14 @@ for(const [key, value] of Object.entries(hrrr.locations))
     const index = findNearest(value);
     for(let i = 0; i < value.temperature.length; i++)
     {
-        const newDate = new Date(baseDate.getTime() + i * 60 * 60 * 1000);
+        const newDate = addHoursToDate(baseDate, i);
+
+        if(newDate < addHoursToDate(new Date(),  -1))
+             continue;
+
+	if(newDate.getHours() === 0)
+             console.log(`${newDate.toLocaleDateString('en-US', { timeZone })}`);
+
         const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`.padStart(8);
         const temperature = `${parseInt(value.temperature[i][index])}ºF`.padStart(6);
         const dewpoint = `${parseInt(value.dewpoint[i][index])}ºF`.padStart(6);
