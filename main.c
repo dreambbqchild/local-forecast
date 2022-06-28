@@ -35,15 +35,16 @@ double WindDirection(double u, double v) {
     return (180 / 3.14159265358979323846) * atan2(u, v) + 180;
 }
 
-codes_fieldset* GetFieldSet() {
+codes_fieldset* GetFieldSet(const char* dataDir) {
     int err = 0, gribFileCount = 0;
-    char** gribFiles = (char**)malloc(sizeof(char*) * GRIB_FILES );
+    char** gribFiles = (char**)malloc(sizeof(char*) * GRIB_FILES);
+    size_t dataDirLen = strlen(dataDir);
 
     for(gribFileCount = 0; gribFileCount < GRIB_FILES; gribFileCount++)
     {
         struct stat statBuffer;
-        gribFiles[gribFileCount] = malloc(sizeof(char) * 21);
-        sprintf(gribFiles[gribFileCount], "./data/hrrr-%02d.grib2", gribFileCount);
+        gribFiles[gribFileCount] = malloc(sizeof(char) * dataDirLen + 16);
+        sprintf(gribFiles[gribFileCount], "%s/hrrr-%02d.grib2", dataDir, gribFileCount);
         if(stat(gribFiles[gribFileCount], &statBuffer))
         {
             free(gribFiles[gribFileCount]);
@@ -133,6 +134,9 @@ void FinishStep(long step, WindData* windData, PrecipData* precipData, json_obje
 
 int main(int argc, char* argv[])
 {
+    if(argc < 3)
+        return 1;
+
     char isFirst = 1;
     int err = 0, hour = 0;
     long lastStep = 0;
@@ -142,7 +146,7 @@ int main(int argc, char* argv[])
 
     size_t length = 0;
 
-    codes_fieldset* set = GetFieldSet();
+    codes_fieldset* set = GetFieldSet(argv[1]);
 
     json_object* root = json_object_new_object();
     json_object* objLocations = json_object_new_object();
@@ -272,13 +276,16 @@ int main(int argc, char* argv[])
 
     codes_fieldset_delete(set);
 
-    char fileName[16] = {0};
-    sprintf(fileName, "hrrr-%02d.json", hour);
+    char* fileName = (char*)malloc(sizeof(char) * (strlen(argv[2]) + 16));
+    sprintf(fileName, "%s/hrrr-%02d.json", argv[2], hour);
     json_object_to_file(fileName, root);
 
-    FILE* lastRun = fopen("lastRun", "w");
+    sprintf(fileName, "%s/lastRun", argv[2]);
+    FILE* lastRun = fopen(fileName, "w");
     fprintf(lastRun, "%02d", hour);
     fclose(lastRun);
+
+    free(fileName);
 
     json_object_put(root);
 }

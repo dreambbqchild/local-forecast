@@ -12,4 +12,4 @@ else
 fi
 
 cd ./build
-./local-forecast
+./local-forecast ./data ../forecasts

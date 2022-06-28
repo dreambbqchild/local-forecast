@@ -1,7 +1,8 @@
 #!/bin/bash
-rm ./build/data/*.grib2 2> /dev/null
+CURRENT_DIR=$(dirname "$(readlink -f "$BASH_SOURCE")")
+rm $CURRENT_DIR/build/data/*.grib2 2> /dev/null
 
-export OPENSSL_CONF="$(dirname "$(readlink -f "$BASH_SOURCE")")/openssl.cnf"
+export OPENSSL_CONF="$CURRENT_DIR/openssl.cnf"
 
 TIME_STAMP=$(date -u +%Y%m%d%H -d "-1 hour")
 HOUR=${TIME_STAMP:8:2}
