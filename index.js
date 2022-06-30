@@ -48,7 +48,7 @@ const tccEmoji = (itcc, lightning, precipTypes, precipRate) =>
         return '🌤';
     else if(itcc < 95)
         return '⛅';
-    return '☁';
+    return '☁️';
 }
 
 const tableBody = (baseDate, hrrr) => 
