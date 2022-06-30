@@ -30,7 +30,7 @@ const tccEmoji = (itcc, lightning, precipTypes, precipRate) =>
         return '🌩';
     else if(precipRate && lightning)
         return '⛈';
-    else if(precipRate && precipTypes.length) {
+    else if(precipTypes.length) {
         return precipTypes.map(type => {
             switch(type){
                 case 'rain': return '🌧';
@@ -105,7 +105,7 @@ const renderForHour = (hour) => {
     <head>
         <title>${prettyDate(baseDate)} ${prettyTime(baseDate)} Forecast</title>
         <style>
-            html, body { font-family:'Segoe UI Emoji'; font-size: 1.5em; }
+            html, body { font-family:'Segoe UI Emoji'; font-size: 1.5em; background: black; color: white;}
             table {width: 100vw;}
         </style>
     </head>
