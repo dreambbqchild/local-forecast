@@ -9,13 +9,22 @@ const findNearest = (location) => {
     let max = 0xFFFFFFFF;
     let result = -1;
     for(let i = 0; i < 4; i++) {
-        if(location['grid'][i].distance < max) {
-            max = location['grid'][i].distance;
+        if(location.grid[i].distance < max) {
+            max = location.grid[i].distance;
             result = i;
         }
     }
 
     return result;
+}
+
+const findWeightsForAverage = (location) => {
+    const max = Math.max(...location.grid.map(c => c.distance)) + 1;
+    const weights = [];
+    for(let i = 0; i < 4; i++)
+        weights.push(-(max - location.grid[i].distance));
+
+    return weights;
 }
 
 const addHoursToDate = (date, hours) => new Date(date.getTime() + hours * 60 * 60 * 1000);
@@ -58,7 +67,18 @@ const tableBody = (baseDate, hrrr) =>
         const [key, value] = arr;
         let result = headerRow(key);
         const index = findNearest(value);
-        
+        const weights = findWeightsForAverage(value);
+        const weightsSum = weights.reduce((a, b) => a + b, 0);
+ 
+        const weighted = (values, property) => {
+            let result = 0;
+            for(let i = 0; i < 4; i++) {
+                const value = property ? values[i][property] : values[i];
+                result += weights[i] * value;
+            }
+            return result / weightsSum;
+        }
+
         for(let i = 0; i < value.temperature.length; i++)
         {
             const newDate = addHoursToDate(baseDate, i);
@@ -70,17 +90,17 @@ const tableBody = (baseDate, hrrr) =>
                 result += headerRow(prettyDate(newDate));
 
             const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`;
-            const temperature = `🌡${parseInt(value.temperature[i][index])}ºF`;
-            const dewpoint = `💧${parseInt(value.dewpoint[i][index])}ºF`;
-            const rate = value.precip[i][index].rate;
-            const pressure = `${value.pressure[i][index].toFixed(2)}`;
-            const lightning = parseInt(Math.floor(value.lightning[i][index]));
-            const itcc = parseInt(value.totalCloudCover[i][index]);
-            const tcc = `${tccEmoji(itcc, lightning, value.precip[i][index].types, rate)} ${itcc}%`;
-            const visibility = `${parseInt(value.vis[i][index])}`;
-            const windDirection = `${parseInt(value.wind[i][index].dir)}`;
-            const windSpeed = `${parseInt(value.wind[i][index].speed)}`;
-            const windGust = `${parseInt(value.wind[i][index].gust)}`;
+            const temperature = `<span class="emoji">🌡</span>${parseInt(weighted(value.temperature[i]))}ºF`;
+            const dewpoint = `<span class="emoji">💧</span>${parseInt(weighted(value.dewpoint[i]))}ºF`;
+            const rate = weighted(value.precip[i], 'rate');
+            const pressure = `${weighted(value.pressure[i]).toFixed(2)}`;
+            const lightning = parseInt(Math.floor(weighted(value.lightning[i])));
+            const itcc = parseInt(weighted(value.totalCloudCover[i]));
+            const tcc = `<span class="emoji">${tccEmoji(itcc, lightning, value.precip[i][index].types, rate)}</span> ${itcc}%`;
+            const visibility = `${parseInt(weighted(value.vis[i]))}`;
+            const windDirection = `${parseInt(weighted(value.wind[i], 'dir'))}`;
+            const windSpeed = `${parseInt(weighted(value.wind[i], 'speed'))}`;
+            const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`;
 
             result += `           <tr>
                     <td>${time}</td>
@@ -105,8 +125,9 @@ const renderForHour = (hour) => {
     <head>
         <title>${prettyDate(baseDate)} ${prettyTime(baseDate)} Forecast</title>
         <style>
-            html, body { font-family:'Segoe UI Emoji'; font-size: 1.5em; background: black; color: white;}
+            html, body { font-size: 1.5em; background: black; color: white;}
             table {width: 100vw;}
+            .emoji {font-family: 'Apple Color Emoji', 'Segoe UI Emoji' }
         </style>
     </head>
     <body>
