@@ -11,5 +11,4 @@ else
 	./getData18.sh
 fi
 
-cd ./build
-./local-forecast ./data ../forecasts
+./build/local-forecast ./data ./forecasts
