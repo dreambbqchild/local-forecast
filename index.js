@@ -144,6 +144,12 @@ app.get('/', (req, res) => {
 });
 
 app.get('/:hour', (req, res) => {
+    if(isNaN(parseInt(req.params.hour)))
+    {
+        res.status(204).send();
+        return;
+    }
+
     res.send(renderForHour(req.params.hour));
 });
 
