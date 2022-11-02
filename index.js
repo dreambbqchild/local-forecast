@@ -1,7 +1,4 @@
 const fs = require('fs');
-const express = require('express');
-const app = express();
-const port = 3500;
 const timeZone = 'America/Chicago';
 const timeStringOptions = { timeZone: timeZone, hour: '2-digit', minute:'2-digit' };
 
@@ -30,9 +27,6 @@ const findWeightsForAverage = (location) => {
 const addHoursToDate = (date, hours) => new Date(date.getTime() + hours * 60 * 60 * 1000);
 const prettyDate = (date) => date.toLocaleDateString('en-US', { timeZone });
 const prettyTime = (date) => date.toLocaleTimeString('en-US', { timeZone });
-const headerRow = (content) => `        <tr>
-                <td colspan="11" style="text-align: center;">${content}</td>
-            </tr>`;
 const tccEmoji = (itcc, lightning, precipTypes, precipRate) =>
 {   
     if(!precipRate && lightning)
@@ -42,8 +36,8 @@ const tccEmoji = (itcc, lightning, precipTypes, precipRate) =>
     else if(precipTypes.length) {
         return precipTypes.map(type => {
             switch(type){
-                case 'rain': return '🌧';
-                case 'snow': return '🌨';
+                case 'rain': return '🌧️';
+                case 'snow': return '🌨️';
                 case 'freezing rain': return '🧊';
                 default: ''
             }
@@ -52,9 +46,9 @@ const tccEmoji = (itcc, lightning, precipTypes, precipRate) =>
     else if(itcc < 5)
         return '🌞';
     else if(itcc < 33)
-        return '☀';
+        return '☀️';
     else if(itcc < 66)
-        return '🌤';
+        return '🌤️';
     else if(itcc < 95)
         return '⛅';
     return '☁️';
@@ -65,7 +59,7 @@ const tableBody = (baseDate, hrrr) =>
     return Object.entries(hrrr.locations).map(arr =>
     {
         const [key, value] = arr;
-        let result = headerRow(key);
+        let result = `${key}\n`;
         const index = findNearest(value);
         const weights = findWeightsForAverage(value);
         const weightsSum = weights.reduce((a, b) => a + b, 0);
@@ -86,33 +80,22 @@ const tableBody = (baseDate, hrrr) =>
             if(newDate < addHoursToDate(new Date(),  -1))
                 continue;
 
-            if(newDate.getHours() === 0)
-                result += headerRow(prettyDate(newDate));
-
             const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`;
-            const temperature = `<span class="emoji">🌡</span>${parseInt(weighted(value.temperature[i]))}ºF`;
-            const dewpoint = `<span class="emoji">💧</span>${parseInt(weighted(value.dewpoint[i]))}ºF`;
+            const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}ºF`;
+            const dewpoint = `💧${parseInt(weighted(value.dewpoint[i])).toString().padStart(3)}ºF`;
             const rate = weighted(value.precip[i], 'rate');
             const pressure = `${weighted(value.pressure[i]).toFixed(2)}`;
             const lightning = parseInt(Math.floor(weighted(value.lightning[i])));
-            const itcc = parseInt(weighted(value.totalCloudCover[i]));
-            const tcc = `<span class="emoji">${tccEmoji(itcc, lightning, value.precip[i][index].types, rate)}</span> ${itcc}%`;
-            const visibility = `${parseInt(weighted(value.vis[i]))}`;
+            const itcc = parseInt(weighted(value.totalCloudCover[i])).toString().padStart(3);
+            const tcc = `${tccEmoji(itcc, lightning, value.precip[i][index].types, rate)} ${itcc}%`;
+            const visibility = `${parseInt(weighted(value.vis[i]))}`.padStart(2);
             const windDirection = `${parseInt(weighted(value.wind[i], 'dir'))}`;
-            const windSpeed = `${parseInt(weighted(value.wind[i], 'speed'))}`;
+            const windSpeed = `${parseInt(weighted(value.wind[i], 'speed'))}`.padStart(2);
             const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`;
 
-            result += `           <tr>
-                    <td>${time}</td>
-                    <td>${temperature} ${dewpoint}</td>
-                    <td>${pressure}</td>
-                    <td>${tcc}</td>
-                    <td>${rate.toFixed(5)}</td>
-                    <td>${visibility}</td>
-                    <td>${windDirection} @ ${windSpeed} G ${windGust}</td>
-                </tr>`;
+            result += `${time} | ${temperature} ${dewpoint} ${pressure} ${tcc} ${rate.toFixed(3)} ${visibility} ${windDirection} @ ${windSpeed} G ${windGust}\n`;
         }
-        return result + headerRow("<hr/>");
+        return result;
     }).join('');
 }
 
@@ -120,39 +103,20 @@ const renderForHour = (hour) => {
     const hrrr = JSON.parse(fs.readFileSync(`./forecasts/hrrr-${hour}.json`, 'utf8'));
     const baseDate = new Date(hrrr.date);
 
-    return `<!DOCTYPE html>
-<html>
-    <head>
-        <title>${prettyDate(baseDate)} ${prettyTime(baseDate)} Forecast</title>
-        <style>
-            html, body { font-size: 1.5em; background: black; color: white;}
-            table {width: 100vw;}
-            .emoji {font-family: 'Apple Color Emoji', 'Segoe UI Emoji' }
-        </style>
-    </head>
-    <body>
-        <table>
-            ${tableBody(baseDate, hrrr)}
-        </table>
-    </body>
-</html>`
+    console.log(`${prettyDate(baseDate)} ${prettyTime(baseDate)} Forecast
+${tableBody(baseDate, hrrr)}`);
 }
 
-app.get('/', (req, res) => {
-    const hour = fs.readFileSync('./forecasts/lastRun', 'utf8');
-    res.send(renderForHour(hour));
-});
-
-app.get('/:hour', (req, res) => {
-    if(isNaN(parseInt(req.params.hour)))
-    {
-        res.status(204).send();
-        return;
+if(process.argv.length === 3)
+{
+    const hour = parseInt(process.argv[2]);
+    if(isNaN(hour) || hour < 0 || hour > 23) {
+        console.log("Hour must be a value from 0 to 23s")
+        return
     }
-
-    res.send(renderForHour(req.params.hour));
-});
-
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-});
+    renderForHour(hour);
+}
+else {
+    const hour = fs.readFileSync('./forecasts/lastRun', 'utf8');
+    renderForHour(hour);
+}

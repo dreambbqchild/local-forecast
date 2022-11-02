@@ -1,4 +1,6 @@
 #!/bin/bash
+export LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
+
 CURRENT_DIR=$(dirname "$(readlink -f "$BASH_SOURCE")")
 TIME_STAMP=$(date -u +%H -d '-1 hour')
 OFFSET=$(($TIME_STAMP % 6))
