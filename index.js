@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { getSunrise, getSunset } = require('sunrise-sunset-js');
 const timeZone = 'America/Chicago';
-const timeStringOptions = { timeZone: timeZone, hour: '2-digit', minute:'2-digit' };
+const timeStringOptions = { timeZone: timeZone, hour: 'numeric' };
 
 const findNearest = (location) => {
     let max = 0xFFFFFFFF;
@@ -71,6 +71,9 @@ const visEmoji = (vis, coords, date) => {
     var sunrise = getSunrise(coords.lat, coords.lon, date);
     var sunset = getSunset(coords.lat, coords.lon, date);
 
+    if(sunrise.getHours() == date.getHours() || sunset.getHours() == date.getHours())
+        return '🌆';
+
     if(sunrise >= date || sunset <= date)
         return '🌃';
     
@@ -79,6 +82,7 @@ const visEmoji = (vis, coords, date) => {
 
 const tableBody = (baseDate, hrrr) => 
 {
+    const now = new Date();
     return Object.entries(hrrr.locations).map(arr =>
     {
         const [key, value] = arr;
@@ -100,13 +104,13 @@ const tableBody = (baseDate, hrrr) =>
         {
             const newDate = addHoursToDate(baseDate, i);
 
+            if(newDate < addHoursToDate(now,  -1))
+                continue;
+
             if(!newDate.getHours())
                 result += '\n';
 
-            if(newDate < addHoursToDate(new Date(),  -1))
-                continue;
-
-            const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`.substring(0, 5);
+            const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`.replace(/ ([A|P])M/, '$1').padStart(3);
             const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}ºF`;
             const dewpoint = `💧${parseInt(weighted(value.dewpoint[i])).toString().padStart(3)}ºF`;
             const hourTotal = weighted(value.precip[i], 'hourTotal');

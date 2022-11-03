@@ -6,6 +6,7 @@ TIME_STAMP=$(date -u +%H -d '-1 hour')
 OFFSET=$(($TIME_STAMP % 6))
 
 cd $CURRENT_DIR
+rm data/*.grib2
 
 if [ $OFFSET -eq 0 ]; then
 	./getData48.sh
