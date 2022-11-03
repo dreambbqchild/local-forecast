@@ -19,6 +19,10 @@ double ToInPerHour(double mmPerSec) {
     return mmPerSec * 141.7;
 }
 
+double ToInches(double kgPerSquareMeter){
+    return kgPerSquareMeter * 0.04;
+}
+
 double ToMiles(double m) {
     return m * 0.000621371;
 }
@@ -116,6 +120,8 @@ void FinishStep(long step, WindData* windData, PrecipData* precipData, json_obje
         json_object_object_add(windJson, "gust", json_object_new_double(windData->gust[i]));
 
         json_object_object_add(precipJson, "rate", json_object_new_double(precipData->rate[i]));
+        json_object_object_add(precipJson, "cumulativeTotal", json_object_new_double(precipData->cumulativeTotal[i]));
+        json_object_object_add(precipJson, "hourTotal", json_object_new_double(step == 1 ? precipData->cumulativeTotal[i] : precipData->hourTotal[i]));
         json_object_object_add(precipJson, "types", precipTypes);
         if((precipData->type[i] & PTYPE_RAIN) == PTYPE_RAIN)
             json_object_array_add(precipTypes, json_object_new_string("rain"));
@@ -179,9 +185,11 @@ int main(int argc, char* argv[])
         if(isFirst)
             hour = AddDate(h, root);
 
+        GetString(fieldData, name)
         GetString(fieldData, shortName)
         GetString(fieldData, level)
         GetString(fieldData, typeOfLevel)
+        GetString(fieldData, stepRange)
 
         if (isFirst) {
             for(int i = 0; i < locationsLength; i++)
@@ -192,7 +200,7 @@ int main(int argc, char* argv[])
         CODES_CHECK(codes_get_size(h, "values", &valuesLen),0);
         double* values = (double*)malloc(valuesLen * sizeof(double));
         CODES_CHECK(codes_get_double_array(h, "values", values, &valuesLen), "unable to get values");
-        printf("%ld %s %s %s %g\n", fieldData.step, fieldData.shortName, fieldData.typeOfLevel, fieldData.level, values[locations[0].homeData.indexes[0]]);
+        printf("%ld %s %s %s %s %s %g\n", fieldData.step, fieldData.shortName, fieldData.name, fieldData.stepRange, fieldData.typeOfLevel, fieldData.level, values[locations[0].homeData.indexes[0]]);
 
         for(int i = 0; i < locationsLength; i++) {
             json_object* currentJson = NULL;
@@ -210,6 +218,13 @@ int main(int argc, char* argv[])
             else if(ShortNameIs("prate")) {
                 currentDoubleArray = locations[i].precipData.rate;
                 conversion = ToInPerHour;
+            }
+            else if(ShortNameIs("tp")) {
+                if(fieldData.stepRange[0] == '0' && fieldData.stepRange[1] == '-')
+                    currentDoubleArray = locations[i].precipData.cumulativeTotal;
+                else
+                    currentDoubleArray = locations[i].precipData.hourTotal;
+                conversion = ToInches;
             }
             else if(ShortNameIs("crain") || ShortNameIs("cfrzr") || ShortNameIs("csnow"))
                 currentIntArray = locations[i].precipData.type;
@@ -258,7 +273,8 @@ int main(int argc, char* argv[])
                             locations[i].precipData.type[k] |= dValue == 1 ? PTYPE_FREEZING_RAIN : 0;
                         else if(ShortNameIs("csnow"))
                             locations[i].precipData.type[k] |= dValue == 1 ? PTYPE_SNOW : 0;
-                    } else if(currentDoubleArray)
+                    }
+                    else if(currentDoubleArray)
                         currentDoubleArray[k] = conversion ? conversion(dValue) : dValue;
                     else
                         json_object_array_add(stepArray, json_object_new_double(conversion ? conversion(dValue) : dValue));

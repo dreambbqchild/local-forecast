@@ -24,6 +24,13 @@ const findWeightsForAverage = (location) => {
     return weights;
 }
 
+const dir = (deg, useArrows = true) => {
+    const arrows = ["↓", "↙", "←", "↖", "↑", "↗", "→", "↘"];
+    const dirs = [" N", "NE", " E", "SE", " S", "SW", " W", "NW"];
+    const arr = useArrows ? arrows : dirs;
+    return `${arr[Math.trunc(((deg + 22) % 360) / 45)]}`;
+}
+
 const addHoursToDate = (date, hours) => new Date(date.getTime() + hours * 60 * 60 * 1000);
 const prettyDate = (date) => date.toLocaleDateString('en-US', { timeZone });
 const prettyTime = (date) => date.toLocaleTimeString('en-US', { timeZone });
@@ -83,17 +90,18 @@ const tableBody = (baseDate, hrrr) =>
             const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`;
             const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}ºF`;
             const dewpoint = `💧${parseInt(weighted(value.dewpoint[i])).toString().padStart(3)}ºF`;
+            const hourTotal = weighted(value.precip[i], 'hourTotal');
             const rate = weighted(value.precip[i], 'rate');
             const pressure = `${weighted(value.pressure[i]).toFixed(2)}`;
             const lightning = parseInt(Math.floor(weighted(value.lightning[i])));
-            const itcc = parseInt(weighted(value.totalCloudCover[i])).toString().padStart(3);
-            const tcc = `${tccEmoji(itcc, lightning, value.precip[i][index].types, rate)} ${itcc}%`;
+            const itcc = parseInt(weighted(value.totalCloudCover[i]));
+            const tcc = `${tccEmoji(itcc, lightning, value.precip[i][index].types, rate)}`;
             const visibility = `${parseInt(weighted(value.vis[i]))}`.padStart(2);
-            const windDirection = `${parseInt(weighted(value.wind[i], 'dir'))}`;
+            const windDirection = dir(parseInt(weighted(value.wind[i], 'dir')), false);
             const windSpeed = `${parseInt(weighted(value.wind[i], 'speed'))}`.padStart(2);
             const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`;
 
-            result += `${time} | ${temperature} ${dewpoint} ${pressure} ${tcc} ${rate.toFixed(3)} ${visibility} ${windDirection} @ ${windSpeed} G ${windGust}\n`;
+            result += `${time} | ${temperature} ${dewpoint} ${pressure}" ${tcc} ${hourTotal.toFixed(3)} ${visibility} ${windDirection} @ ${windSpeed} G ${windGust}\n`;
         }
         return result;
     }).join('');

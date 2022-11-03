@@ -29,8 +29,10 @@ typedef struct HomeData {
 typedef struct FieldData {
     long step;
     char shortName[20];
+    char name[128];
     char level[32];
     char typeOfLevel[256];
+    char stepRange[8];
 } FieldData;
 
 typedef struct WindData {
@@ -43,6 +45,8 @@ typedef struct WindData {
 typedef struct PrecipData {
     int type[NEARBY_SIZE];
     double rate[NEARBY_SIZE];
+    double cumulativeTotal[NEARBY_SIZE];
+    double hourTotal[NEARBY_SIZE];
 } PrecipData;
 
 typedef struct Location {
