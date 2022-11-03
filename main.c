@@ -160,8 +160,15 @@ int main(int argc, char* argv[])
 
     for(int i = 0; i < locationsLength; i++)
     {
+        json_object* objCoords = json_object_new_object();
         locations[i].root = json_object_new_object();
+
         json_object_object_add(objLocations, locations[i].name, locations[i].root);
+        
+        json_object_object_add(locations[i].root, "coords", objCoords);
+        json_object_object_add(objCoords, "lat", json_object_new_double(locations[i].lat));
+        json_object_object_add(objCoords, "lon", json_object_new_double(locations[i].lon));
+
         AddJsonArray(i, locations[i].root, cape)
         AddJsonArray(i, locations[i].root, dewpoint)
         AddJsonArray(i, locations[i].root, lightning)

@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/dreambbqchild/local-forecast/issues"
   },
-  "homepage": "https://github.com/dreambbqchild/local-forecast#readme"
+  "homepage": "https://github.com/dreambbqchild/local-forecast#readme",
+  "dependencies": {
+    "sunrise-sunset-js": "^2.2.1"
+  }
 }

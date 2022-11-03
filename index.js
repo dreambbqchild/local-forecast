@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { getSunrise, getSunset } = require('sunrise-sunset-js');
 const timeZone = 'America/Chicago';
 const timeStringOptions = { timeZone: timeZone, hour: '2-digit', minute:'2-digit' };
 
@@ -61,12 +62,27 @@ const tccEmoji = (itcc, lightning, precipTypes, precipRate) =>
     return '☁️';
 }
 
+const visEmoji = (vis, coords, date) => {
+    if(vis <= 3)
+        return '🌫️'
+    else if (vis <= 6)
+        return '🌁';
+
+    var sunrise = getSunrise(coords.lat, coords.lon, date);
+    var sunset = getSunset(coords.lat, coords.lon, date);
+
+    if(sunrise >= date || sunset <= date)
+        return '🌃';
+    
+    return '🏙️';
+}
+
 const tableBody = (baseDate, hrrr) => 
 {
     return Object.entries(hrrr.locations).map(arr =>
     {
         const [key, value] = arr;
-        let result = `${key}\n`;
+        let result = `---${key}---\n`;
         const index = findNearest(value);
         const weights = findWeightsForAverage(value);
         const weightsSum = weights.reduce((a, b) => a + b, 0);
@@ -84,10 +100,13 @@ const tableBody = (baseDate, hrrr) =>
         {
             const newDate = addHoursToDate(baseDate, i);
 
+            if(!newDate.getHours())
+                result += '\n';
+
             if(newDate < addHoursToDate(new Date(),  -1))
                 continue;
 
-            const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`;
+            const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`.substring(0, 5);
             const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}ºF`;
             const dewpoint = `💧${parseInt(weighted(value.dewpoint[i])).toString().padStart(3)}ºF`;
             const hourTotal = weighted(value.precip[i], 'hourTotal');
@@ -99,12 +118,12 @@ const tableBody = (baseDate, hrrr) =>
             const visibility = `${parseInt(weighted(value.vis[i]))}`.padStart(2);
             const windDirection = dir(parseInt(weighted(value.wind[i], 'dir')), false);
             const windSpeed = `${parseInt(weighted(value.wind[i], 'speed'))}`.padStart(2);
-            const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`;
+            const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`.padStart(2);;
 
-            result += `${time} | ${temperature} ${dewpoint} ${pressure}" ${tcc} ${hourTotal.toFixed(3)} ${visibility} ${windDirection} @ ${windSpeed} G ${windGust}\n`;
+            result += `${time}｜${visEmoji(visibility, value.coords, newDate)}｜${temperature} ${dewpoint}｜${tcc} ${hourTotal.toFixed(3)}｜${windDirection} @ ${windSpeed} G ${windGust}｜${pressure}"\n`;
         }
         return result;
-    }).join('');
+    }).join('\n');
 }
 
 const renderForHour = (hour) => {
