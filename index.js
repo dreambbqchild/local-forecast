@@ -3,6 +3,12 @@ const { getSunrise, getSunset } = require('sunrise-sunset-js');
 const timeZone = 'America/Chicago';
 const timeStringOptions = { timeZone: timeZone, hour: 'numeric' };
 
+const config = {
+    hour: fs.readFileSync('./forecasts/lastRun', 'utf8'),
+    splitIntoFiles: false,
+    maxForecastLength: 48
+};
+
 const findNearest = (location) => {
     let max = 0xFFFFFFFF;
     let result = -1;
@@ -82,15 +88,16 @@ const visEmoji = (vis, coords, date) => {
 
 const tableBody = (baseDate, hrrr) => 
 {
+    let forecastIndex = 0;
     const now = new Date();
-    return Object.entries(hrrr.locations).map(arr =>
+    return Object.entries(hrrr.locations).sort((l, r) =>  l[1].coords.lon - r[1].coords.lon).map(arr =>
     {
         const [key, value] = arr;
-        let result = `---${key}---\n`;
+        let result = `${key} 🏠\n`;
         const index = findNearest(value);
         const weights = findWeightsForAverage(value);
         const weightsSum = weights.reduce((a, b) => a + b, 0);
- 
+        let lines = 0;
         const weighted = (values, property) => {
             let result = 0;
             for(let i = 0; i < 4; i++) {
@@ -108,7 +115,7 @@ const tableBody = (baseDate, hrrr) =>
                 continue;
 
             if(!newDate.getHours())
-                result += '\n';
+                result += '\n';            
 
             const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`.replace(/ ([A|P])M/, '$1').padStart(3);
             const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}ºF`;
@@ -125,29 +132,58 @@ const tableBody = (baseDate, hrrr) =>
             const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`.padStart(2);;
 
             result += `${time}｜${visEmoji(visibility, value.coords, newDate)}｜${temperature} ${dewpoint}｜${tcc} ${hourTotal.toFixed(3)}｜${windDirection} @ ${windSpeed} G ${windGust}｜${pressure}"\n`;
+
+            if(++lines === config.maxForecastLength)
+                break;
         }
+    
+        if(config.splitIntoFiles) {
+            if(!fs.existsSync('./renderings'))
+                fs.mkdirSync('./renderings');
+
+            fs.writeFileSync(`./renderings/${forecastIndex.toString().padStart(2, '0')}.txt`, result, 'utf8');
+        }
+
+        forecastIndex++;
         return result;
     }).join('\n');
 }
 
-const renderForHour = (hour) => {
-    const hrrr = JSON.parse(fs.readFileSync(`./forecasts/hrrr-${hour}.json`, 'utf8'));
+const render = () => {
+    const hrrr = JSON.parse(fs.readFileSync(`./forecasts/hrrr-${config.hour}.json`, 'utf8'));
     const baseDate = new Date(hrrr.date);
 
     console.log(`${prettyDate(baseDate)} ${prettyTime(baseDate)} Forecast
 ${tableBody(baseDate, hrrr)}`);
 }
 
-if(process.argv.length === 3)
-{
-    const hour = parseInt(process.argv[2]);
-    if(isNaN(hour) || hour < 0 || hour > 23) {
-        console.log("Hour must be a value from 0 to 23s")
-        return
+const testNumber = (str, label, min, max) => {
+    const num = parseInt(str);
+    if(isNaN(num) || num < min || num > max) {
+        console.log(`${label} must be a value from ${min} to ${max}. Got ${str}`);
+        return null;
     }
-    renderForHour(hour);
+
+    return num;
 }
-else {
-    const hour = fs.readFileSync('./forecasts/lastRun', 'utf8');
-    renderForHour(hour);
+
+for(let i = 0; i < process.argv.length; i++)
+{    
+    if(process.argv[i] === '-s')
+        config.splitIntoFiles = true;
+    else if(process.argv[i] === '-h'){
+        i++;
+        config.hour = testNumber(process.argv[i], 'Hour', 0, 23);
+        if(config.hour === null)
+            return;
+    }
+    else if(process.argv[i] === '-l')
+    {
+        i++;
+        config.maxForecastLength = testNumber(process.argv[i], 'MaxForecastLength', 1, 48);
+        if(config.maxForecastLength === null)
+            return;
+    }
 }
+
+render();

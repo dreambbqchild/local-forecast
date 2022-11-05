@@ -1,6 +1,5 @@
 #!/bin/bash
 CURRENT_DIR=$(dirname "$(readlink -f "$BASH_SOURCE")")
-rm $CURRENT_DIR/build/data/*.grib2 2> /dev/null
 
 export OPENSSL_CONF="$CURRENT_DIR/openssl.cnf"
 
