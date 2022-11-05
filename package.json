@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/dreambbqchild/local-forecast#readme",
   "dependencies": {
+    "moment": "^2.29.4",
     "sunrise-sunset-js": "^2.2.1"
   }
 }

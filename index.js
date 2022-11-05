@@ -1,12 +1,14 @@
 const fs = require('fs');
 const { getSunrise, getSunset } = require('sunrise-sunset-js');
+const moment = require('moment');
 const timeZone = 'America/Chicago';
 const timeStringOptions = { timeZone: timeZone, hour: 'numeric' };
 
 const config = {
     hour: fs.readFileSync('./forecasts/lastRun', 'utf8'),
     splitIntoFiles: false,
-    maxForecastLength: 48
+    maxForecastLength: 48,
+    startDate: new Date()
 };
 
 const findNearest = (location) => {
@@ -39,7 +41,7 @@ const dir = (deg, useArrows = true) => {
 }
 
 const addHoursToDate = (date, hours) => new Date(date.getTime() + hours * 60 * 60 * 1000);
-const prettyDate = (date) => date.toLocaleDateString('en-US', { timeZone });
+const prettyDate = (date) => date.toLocaleDateString('en-US', { timeZone, day: '2-digit', month: '2-digit' });
 const prettyTime = (date) => date.toLocaleTimeString('en-US', { timeZone });
 const tccEmoji = (itcc, lightning, precipTypes, precipRate) =>
 {   
@@ -89,11 +91,11 @@ const visEmoji = (vis, coords, date) => {
 const tableBody = (baseDate, hrrr) => 
 {
     let forecastIndex = 0;
-    const now = new Date();
+    const now = config.startDate;
     return Object.entries(hrrr.locations).sort((l, r) =>  l[1].coords.lon - r[1].coords.lon).map(arr =>
     {
         const [key, value] = arr;
-        let result = `${key} 🏠\n`;
+        let result = '';
         const index = findNearest(value);
         const weights = findWeightsForAverage(value);
         const weightsSum = weights.reduce((a, b) => a + b, 0);
@@ -114,8 +116,15 @@ const tableBody = (baseDate, hrrr) =>
             if(newDate < addHoursToDate(now,  -1))
                 continue;
 
-            if(!newDate.getHours())
-                result += '\n';            
+            if(!lines)
+            {
+                var textDate = prettyDate(newDate);
+                var currentLocation = `${key} 🏠`;
+                result = `${currentLocation}${textDate.padStart(28 - key.length)}\n`;
+            }
+
+            if(!newDate.getHours() && lines)
+                result += `${prettyDate(newDate).padStart(31)}\n`;
 
             const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`.replace(/ ([A|P])M/, '$1').padStart(3);
             const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}ºF`;
@@ -129,9 +138,9 @@ const tableBody = (baseDate, hrrr) =>
             const visibility = `${parseInt(weighted(value.vis[i]))}`.padStart(2);
             const windDirection = dir(parseInt(weighted(value.wind[i], 'dir')), false);
             const windSpeed = `${parseInt(weighted(value.wind[i], 'speed'))}`.padStart(2);
-            const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`.padStart(2);;
+            const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`.padStart(2);
 
-            result += `${time}｜${visEmoji(visibility, value.coords, newDate)}｜${temperature} ${dewpoint}｜${tcc} ${hourTotal.toFixed(3)}｜${windDirection} @ ${windSpeed} G ${windGust}｜${pressure}"\n`;
+            result += `${time}｜${visEmoji(visibility, value.coords, newDate)}｜${temperature} ${dewpoint}｜${tcc} ${hourTotal.toFixed(2)}｜${windDirection} @ ${windSpeed} G ${windGust}｜${pressure}"\n`;
 
             if(++lines === config.maxForecastLength)
                 break;
@@ -171,18 +180,26 @@ for(let i = 0; i < process.argv.length; i++)
 {    
     if(process.argv[i] === '-s')
         config.splitIntoFiles = true;
-    else if(process.argv[i] === '-h'){
+    else if(process.argv[i] === '-f') {
         i++;
-        config.hour = testNumber(process.argv[i], 'Hour', 0, 23);
+        config.hour = testNumber(process.argv[i], 'Forecast hour', 0, 23);
         if(config.hour === null)
             return;
     }
     else if(process.argv[i] === '-l')
     {
         i++;
-        config.maxForecastLength = testNumber(process.argv[i], 'MaxForecastLength', 1, 48);
+        config.maxForecastLength = testNumber(process.argv[i], 'Max Forecasts', 1, 48);
         if(config.maxForecastLength === null)
             return;
+    }
+    else if(process.argv[i] == '-h')
+    {
+        i++;
+        var hour = testNumber(process.argv[i], 'First hour', 0, 23);
+        if(hour === null)
+            return;
+        config.startDate = moment(config.startDate).set({ hour, minute:0, second:0, millisecond:0 }).toDate();
     }
 }
 
