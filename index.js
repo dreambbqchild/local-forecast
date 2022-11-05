@@ -48,14 +48,14 @@ const tccEmoji = (itcc, lightning, precipTypes, precipRate) =>
     else if(precipRate && lightning)
         return '⛈';
     else if(precipTypes.length) {
-        return precipTypes.map(type => {
-            switch(type){
-                case 'rain': return '🌧️';
-                case 'snow': return '🌨️';
-                case 'freezing rain': return '🧊';
-                default: ''
-            }
-        }).join('');
+        if(precipTypes.length > 1 || precipTypes[0] === 'freezing rain')
+            return '🧊';
+        else if(precipTypes[0] === 'rain')
+            return '🌧️';
+        else if(precipTypes[0] === 'snow')
+            return '🌨️';
+
+        return '';
     }
     else if(itcc < 5)
         return '🌞';
