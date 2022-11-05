@@ -78,7 +78,7 @@ const visEmoji = (vis, coords, date) => {
     var sunset = getSunset(coords.lat, coords.lon, date);
 
     if(sunrise.getHours() == date.getHours() || sunset.getHours() == date.getHours())
-        return '🌆';
+        return '🌇';
 
     if(sunrise >= date || sunset <= date)
         return '🌃';
