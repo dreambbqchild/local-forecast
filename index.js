@@ -120,15 +120,15 @@ const tableBody = (baseDate, hrrr) =>
             {
                 var textDate = prettyDate(newDate);
                 var currentLocation = `${key} 🏠`;
-                result = `${currentLocation}${textDate.padStart(28 - key.length)}\n`;
+                result = `${currentLocation}${textDate.padStart(29 - key.length)}\n`;
             }
 
             if(!newDate.getHours() && lines)
-                result += `${prettyDate(newDate).padStart(31)}\n`;
+                result += `${prettyDate(newDate).padStart(32)}\n`;
 
             const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`.replace(/ ([A|P])M/, '$1').padStart(3);
-            const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}ºF`;
-            const dewpoint = `💧${parseInt(weighted(value.dewpoint[i])).toString().padStart(3)}ºF`;
+            const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}`;
+            const dewpoint = `💧${parseInt(weighted(value.dewpoint[i])).toString().padStart(3)}`;
             const hourTotal = weighted(value.precip[i], 'hourTotal');
             const rate = weighted(value.precip[i], 'rate');
             const pressure = `${weighted(value.pressure[i]).toFixed(2)}`;
@@ -140,7 +140,7 @@ const tableBody = (baseDate, hrrr) =>
             const windSpeed = `${parseInt(weighted(value.wind[i], 'speed'))}`.padStart(2);
             const windGust = `${parseInt(weighted(value.wind[i], 'gust'))}`.padStart(2);
 
-            result += `${time}｜${visEmoji(visibility, value.coords, newDate)}｜${temperature} ${dewpoint}｜${tcc} ${hourTotal.toFixed(2)}｜${windDirection} @ ${windSpeed} G ${windGust}｜${pressure}"\n`;
+            result += `${time}｜${visEmoji(visibility, value.coords, newDate)}｜${temperature} ${dewpoint}ºF｜${tcc} ${hourTotal.toFixed(2)}"｜${windDirection} @ ${windSpeed} G ${windGust} mph｜${pressure}"\n`;
 
             if(++lines === config.maxForecastLength)
                 break;
