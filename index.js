@@ -88,6 +88,28 @@ const visEmoji = (vis, coords, date) => {
     return '🏙️';
 }
 
+const precipScaleFactor = (tempF, precipTypes) => {
+    if(!precipTypes.length || precipTypes[0] !== 'snow')
+        return 1;
+
+    if(tempF < -20)
+        return 100;
+    else if(tempF <= -1)
+        return 50;
+    else if(tempF <= 9)
+        return 40;
+    else if(tempF <= 14)
+        return 30;
+    else if(tempF <= 19)
+        return 20;
+    else if(tempF <= 27)
+        return 15;
+    else if(tempF <= 34)
+        return 10;
+
+    return 1;
+}
+
 const tableBody = (baseDate, hrrr) => 
 {
     let forecastIndex = 0;
@@ -126,10 +148,11 @@ const tableBody = (baseDate, hrrr) =>
             if(!newDate.getHours() && lines)
                 result += `${prettyDate(newDate).padStart(32)}\n`;
 
+            const tempF = parseInt(weighted(value.temperature[i]));
             const time = `${newDate.toLocaleTimeString('en-US', timeStringOptions)}`.replace(/ ([A|P])M/, '$1').padStart(3);
-            const temperature = `🌡️${parseInt(weighted(value.temperature[i])).toString().padStart(3)}`;
+            const temperature = `🌡️${tempF.toString().padStart(3)}`;
             const dewpoint = `💧${parseInt(weighted(value.dewpoint[i])).toString().padStart(3)}`;
-            const hourTotal = weighted(value.precip[i], 'hourTotal');
+            const hourTotal = weighted(value.precip[i], 'hourTotal') * precipScaleFactor(tempF, value.precip[i][index].types);
             const rate = weighted(value.precip[i], 'rate');
             const pressure = `${weighted(value.pressure[i]).toFixed(2)}`;
             const lightning = parseInt(Math.floor(weighted(value.lightning[i])));
