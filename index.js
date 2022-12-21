@@ -135,7 +135,7 @@ ${precipLine}`;
     }
     
     let forecastIndex = 0;
-    const now = new Date();
+    const now = config.startDate;
     return Object.entries(forecast.locations).sort((l, r) =>  l[1].coords.x - r[1].coords.x).map(arr =>
     {
         const [homeOf, value] = arr;
@@ -230,7 +230,13 @@ for(let i = 0; i < process.argv.length; i++)
         var hour = testNumber(process.argv[i], 'First hour', 0, 23);
         if(hour === null)
             process.exit(1);
-        config.startDate = moment(config.startDate).set({ hour, minute:0, second:0, millisecond:0 }).toDate();
+
+        const now = new Date();
+        let addDays = 0;
+        if(hour < now.getHours())
+            addDays = 1;
+        
+        config.startDate = moment(now).add(addDays, 'days').set({ hour, minute:0, second:0, millisecond:0 }).toDate();
     }
     else if(process.argv[i] == '-m')
     {
