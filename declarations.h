@@ -1,72 +1,127 @@
 #ifndef DECLARATIONS_H
 #define DECLARATIONS_H
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_set>
+#include "calcs.h"
 
-#include <json-c/json.h>
-#include <sys/stat.h>
+#define ERR_OUT(streamCommands) {\
+    std::cerr << streamCommands << std::endl; \
+    exit(1);\
+}
 
-#define GRIB_FILES 49
-#define NEARBY_SIZE 4
+//const double leftlon = -93.550505, rightlon = -92.852469, toplat = 45.184381, bottomlat = 44.468505;
+const double leftlon = -93.63166870117188, rightlon = -92.85987915039063, toplat = 45.183375349113845, bottomlat = 44.61724084030939;
+const uint16_t secondsInHour = 60 * 60;
 
-#define GetString(fieldData, property) \
-length = sizeof(fieldData.property) / sizeof(char); \
-CODES_CHECK(codes_get_string(h, #property, fieldData.property, &length), "Unable to get " #property);
-
-#define AddJsonArray(i, addTo, shortName) \
-locations[i].shortName = json_object_new_array(); \
-json_object_object_add(addTo, #shortName, locations[i].shortName);
-
-#define ShortNameIs(value) strcmp(fieldData.shortName, value) == 0 
-#define TypeOfLevelIs(value) strcmp(fieldData.typeOfLevel, value) == 0 
-
-typedef struct HomeData {
-    double lats[NEARBY_SIZE], 
-        lons[NEARBY_SIZE], 
-        values[NEARBY_SIZE], 
-        distances[NEARBY_SIZE];
-    int indexes[NEARBY_SIZE];
-} HomeData;
-
-typedef struct FieldData {
-    long step;
-    char shortName[20];
-    char name[128];
-    char level[32];
-    char typeOfLevel[256];
-    char stepRange[8];
-} FieldData;
-
-typedef struct WindData {
-    double u[NEARBY_SIZE], 
-        v[NEARBY_SIZE], 
-        gust[NEARBY_SIZE],
-        speed[NEARBY_SIZE];
-} WindData;
-
-typedef struct PrecipData {
-    int type[NEARBY_SIZE];
-    double rate[NEARBY_SIZE];
-    double cumulativeTotal[NEARBY_SIZE];
-    double hourTotal[NEARBY_SIZE];
-} PrecipData;
-
-typedef struct Location {
-    char name[16];
+struct GeoCoord 
+{
     double lat, lon;
-    HomeData homeData;
-    WindData windData;
-    PrecipData precipData;
-    json_object* root;
-    json_object* cape;
-    json_object* dewpoint;
-    json_object* lightning;
-    json_object* precip;
-    json_object* pressure;
-    json_object* totalCloudCover;
-    json_object* temperature;
-    json_object* vis;
-    json_object* wind;
-} Location;
+};
 
-typedef double (*conversionFn)(double);
+struct FieldData 
+{
+    uint16_t index;
+    char name[128], level[32], shortName[32], stepRange[16], typeOfLevel[128];
+    double value;
+};
+
+struct Location {
+    char name[32];
+    double lat, lon;
+    bool isCity;
+};
+
+enum WeatherModel {HRRR, GFS};
+
+//---
+class ForecastArea
+{
+private:
+    WeatherModel wxModel;
+    uint16_t maxGribIndex, skipToGribNumber;
+    uint32_t imageWidth, imageHeight;
+    double metersWidth, metersHeight;
+    time_t forecastStartTime;
+    std::string gribPathTemplate, forecastDataOutputDir;
+
+    Point FindXY(double lat, double lon);
+
+public:
+    ForecastArea(std::string gribPathTemplate, WeatherModel wxModel, time_t forecastStartTime, std::string forecastDataOutputDir, uint16_t maxGribIndex, uint16_t skipToGribNumber = 0);
+    void Process();
+};
+
+//---
+union Pixel;
+struct ImageData;
+struct SetPixelData
+{
+    Point pt;
+    Pixel* px;
+};
+
+class ForecastImage 
+{
+private:
+    std::vector<SetPixelData> setPixels;
+    std::unordered_set<uint32_t> protectedPixels;
+    ImageData* imageData;
+    
+public:
+    ForecastImage(std::string fileName, uint32_t width, uint32_t height);
+    void SetPixel(double dx, double dy, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
+    void InterpolateFill(int32_t pointsPerRow);
+    void Save();
+    virtual ~ForecastImage();
+};
+
+//---
+class GribReader 
+{
+private:
+    WeatherModel wxModel;
+    int32_t rows, columns, numberOfValues;
+    std::string fileName;
+    std::vector<GeoCoord> geoCoords;
+
+public:
+    GribReader(std::string fileName, WeatherModel wxModel);
+    std::vector<FieldData> GetFieldData();
+    std::vector<GeoCoord> GetGeoCoords(){ return geoCoords; }
+    int32_t GetRows(){return rows;}
+    int32_t GetColumns(){return columns;}
+    int32_t GetNumberOfValues(){return numberOfValues;}
+};
+
+
+//---
+class GribDownloader {
+private:
+    struct StaticConstructor{
+        StaticConstructor();
+    };
+    static StaticConstructor cons;
+
+    uint16_t maxGribIndex, skipToGribNumber;
+    bool usingCachedMode;
+    WeatherModel wxModel;
+    time_t forecastStartTime;
+    std::string filePathTemplate, outputDirectory;
+
+public:
+    GribDownloader(std::string outputDirectory);
+    GribDownloader(std::string outputDirectory, WeatherModel wxmodel, uint16_t maxGribIndex, uint16_t skipToGribNumber = 0);
+
+    std::string GetFilePathTemplate() {return filePathTemplate;}
+    uint16_t GetMaxGribIndex() {return maxGribIndex;}
+    uint16_t GetSkipToGribNumber() {return skipToGribNumber;}
+    WeatherModel GetWeatherModel() {return wxModel;}
+    time_t GetForecastStartTime() {return forecastStartTime;}
+
+    void Download();
+};
+
 
 #endif

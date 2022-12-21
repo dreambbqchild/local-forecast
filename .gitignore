@@ -1,6 +1,9 @@
-locations.c
-/build
-/forecasts
+.env
+.vscode
+locations.cpp
 /node_modules
+/build
+/Release
 /data
+/forecasts
 /renderings
