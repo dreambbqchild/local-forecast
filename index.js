@@ -80,9 +80,9 @@ const tableBody = (forecast) =>
 {
     const extremes = {
         lastForecastTime: null,
-        temp: { max: new ExtremeValue(Number.MIN_VALUE), min: new ExtremeValue(Number.MAX_VALUE)},
-        wind: { max: new ExtremeValue(Number.MIN_VALUE), min: new ExtremeValue(Number.MAX_VALUE)},
-        precip: {max: new ExtremeValue(Number.MIN_VALUE), min: new ExtremeValue(Number.MAX_VALUE)}
+        temp: { max: new ExtremeValue(Number.MIN_SAFE_INTEGER), min: new ExtremeValue(Number.MAX_SAFE_INTEGER)},
+        wind: { max: new ExtremeValue(Number.MIN_SAFE_INTEGER), min: new ExtremeValue(Number.MAX_SAFE_INTEGER)},
+        precip: {max: new ExtremeValue(Number.MIN_SAFE_INTEGER), min: new ExtremeValue(Number.MAX_SAFE_INTEGER)}
     };
 
     const trySaveSplitPart = (fileName, content) => {
@@ -125,9 +125,9 @@ const tableBody = (forecast) =>
                                      : 'No one is expected to see any meaningful precipitation.'
 
         let result = `Between now and ${extremes.lastForecastTime.toLocaleString('en-US')}
-${who(extremes.temp.max.homesOf)} can expect the highest high of ${extremes.temp.max.value}ºF${extremes.temp.max.value <= 0 ? " (but that's not saying much)": ''}
-${who(extremes.temp.min.homesOf)} can expect the lowest low of ${extremes.temp.min.value}ºF${extremes.temp.min.value >= 70 ? " (but that's not saying much)": ''}
-${who(extremes.wind.max.homesOf)} can expect highest sustained wind of ${extremes.wind.max.value}mph
+${who(extremes.temp.max.homesOf)} can expect the highest high of ${extremes.temp.max.value}ºF${extremes.temp.max.value <= 0 ? " (But that's not saying much, is it?)": ''}
+${who(extremes.temp.min.homesOf)} is in line for the lowest low of ${extremes.temp.min.value}ºF${extremes.temp.min.value >= 70 ? " (But that's not saying much, is it?)": ''}
+${who(extremes.wind.max.homesOf)} has the best chance for the highest sustained wind at ${extremes.wind.max.value}mph
 ${precipLine}`;
 
         trySaveSplitPart('stats', result);
@@ -146,6 +146,8 @@ ${precipLine}`;
         let result = '';
         let lines = 0;
         let lastDay = -1;
+        let totalPrecipOffset = 0;
+        let totalSnowOffset = 0;
 
         for(let i = 0; i < wx.temperature.length && lines < config.maxForecastLength; i++)
         {
@@ -160,6 +162,9 @@ ${precipLine}`;
                 var textDate = prettyDate(forecastTime);
                 var currentLocation = `${homeOf} 🏠`;
                 result = `${currentLocation}${textDate.padStart(29 - homeOf.length)}\n`;
+
+                totalPrecipOffset = wx.totalPrecip[i];
+                totalSnowOffset = wx.totalSnow[i];
             }
 
             if((!forecastTime.getHours() || lastDay !== forecastTime.getDay()) && lines && lines < config.maxForecastLength)
@@ -185,7 +190,7 @@ ${precipLine}`;
 
             logExtreme('temp', wx.temperature[i], homeOf);
             logExtreme('wind', wx.windSpd[i], homeOf);
-            logExtreme('precip', wx.totalPrecip[i], homeOf, wx.totalSnow[i]);
+            logExtreme('precip', wx.totalPrecip[i] - totalPrecipOffset, homeOf, wx.totalSnow[i] - totalSnowOffset);
 
             lines++;
         }
@@ -253,5 +258,8 @@ for(let i = 0; i < process.argv.length; i++)
         }
     }
 }
+
+config.startDate = new Date("12-22-2022 08:00");
+config.maxForecastLength = 24;
 
 render();
