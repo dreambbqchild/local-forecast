@@ -24,11 +24,11 @@ time_t GetStartTimeForWeatherModelDownload(WeatherModel wxModel)
     auto now = time(nullptr);
     now -= secondsInHour;
     auto gmtm = gmtime(&now);
-    auto fromLast48HourForecast = gmtm->tm_hour % 6;
-    now -= secondsInHour * fromLast48HourForecast;
-    if(wxModel == WeatherModel::HRRR && fromLast48HourForecast == 0 && gmtm->tm_min < 55)
+    auto fromLastDivBy6Hr = gmtm->tm_hour % 6;
+    now -= secondsInHour * fromLastDivBy6Hr;
+    if(wxModel == WeatherModel::HRRR && fromLastDivBy6Hr == 0 && gmtm->tm_min < 55)
         now -= secondsInHour * 6;
-    else if(wxModel == WeatherModel::GFS && fromLast48HourForecast <= 4 && gmtm->tm_min < 55)
+    else if(wxModel == WeatherModel::GFS && fromLastDivBy6Hr <= 4 && gmtm->tm_min < 55)
         now -= secondsInHour * 6;
     
     return now;
@@ -154,12 +154,26 @@ void GribDownloader::Download()
         auto curl = curl_easy_init();
 
         if (curl) {
+            long httpCode = 0;
             auto fp = fopen(outfilename, "wb");
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
             auto code = curl_easy_perform(curl);
+
+            if(code != CURLE_OK)
+            {
+                cout << "Curl failed: " << code << endl;
+                exit(1);
+            }
             
+            curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &httpCode);
+            if(httpCode >= 300)
+            {
+                cout << "Http request failed: " << httpCode << endl;
+                exit(1);
+            }
+
             curl_easy_cleanup(curl);
             fclose(fp);
         }
