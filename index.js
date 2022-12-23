@@ -259,7 +259,4 @@ for(let i = 0; i < process.argv.length; i++)
     }
 }
 
-config.startDate = new Date("12-22-2022 08:00");
-config.maxForecastLength = 24;
-
 render();
