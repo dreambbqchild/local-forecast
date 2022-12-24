@@ -127,7 +127,7 @@ void GetBoundingBox(uint32_t loc, NearestNeighbor<double, GeoCoord, DistanceCalc
 }
 
 ForecastArea::ForecastArea(string gribPathTemplate, WeatherModel wxModel, time_t forecastStartTime, string forecastDataOutputDir, uint16_t maxGribIndex, uint16_t skipToGribNumber) 
-    : gribPathTemplate(gribPathTemplate), wxModel(wxModel), forecastStartTime(forecastStartTime), forecastDataOutputDir(forecastDataOutputDir), maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), imageHeight(1100)
+    : gribPathTemplate(gribPathTemplate), wxModel(wxModel), forecastStartTime(forecastStartTime), forecastDataOutputDir(forecastDataOutputDir), maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), imageHeight(1164)
 {
     auto line = geod.InverseLine(toplat, leftlon, toplat, rightlon);
     metersWidth = line.Distance();

@@ -118,6 +118,9 @@ const tableBody = (forecast) =>
             return `${arr.sort().join(', ')} & ${last}`;
         };
 
+        const singularPlural = (value, singular, plural) => 
+            value === 1 ? singular : plural;
+
         const wasSnow = extremes.precip.max.metadata >= 0.01;
         const hasPrecip = extremes.precip.max.value >= 0.01;
 
@@ -126,8 +129,8 @@ const tableBody = (forecast) =>
 
         let result = `Between now and ${extremes.lastForecastTime.toLocaleString('en-US')}
 ${who(extremes.temp.max.homesOf)} can expect the highest high of ${extremes.temp.max.value}ºF${extremes.temp.max.value <= 0 ? " (But that's not saying much, is it?)": ''}
-${who(extremes.temp.min.homesOf)} is in line for the lowest low of ${extremes.temp.min.value}ºF${extremes.temp.min.value >= 70 ? " (But that's not saying much, is it?)": ''}
-${who(extremes.wind.max.homesOf)} has the best chance for the highest sustained wind at ${extremes.wind.max.value}mph
+${who(extremes.temp.min.homesOf)} ${singularPlural(extremes.temp.min.homesOf.size, 'is', 'are')} in line for the lowest low of ${extremes.temp.min.value}ºF${extremes.temp.min.value >= 70 ? " (But that's not saying much, is it?)": ''}
+${who(extremes.wind.max.homesOf)} ${singularPlural(extremes.wind.max.homesOf.size, 'has', 'have')} the best chance for the highest sustained wind at ${extremes.wind.max.value}mph
 ${precipLine}`;
 
         trySaveSplitPart('stats', result);
