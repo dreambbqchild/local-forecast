@@ -294,6 +294,7 @@ void ForecastArea::Process()
     {
         IndexedPoint nearPoints[4] = {0};        
         Json::Value jLocation, jCoords, jWx, dewpoint, precipitationRate, precipitationType, gust, lightning, newPrecipitation, pressure, temperature, totalCloudCover, totalPrecipitation, totalSnow, visibility, windDirection, windSpeed;
+        Wx lastResult = {};
                 
         auto homeCoords = FindXY(locations[loc].lat, locations[loc].lon);
         jCoords["x"] = static_cast<uint16_t>(round(homeCoords.x)); 
@@ -363,10 +364,12 @@ void ForecastArea::Process()
             temperature[j] = static_cast<int16_t>(result.temperature);
             totalCloudCover[j] = static_cast<uint16_t>(result.totalCloudCover);
             totalPrecipitation[j] = max(0.0, result.totalPrecipitation);
-            totalSnow[j] = max(0.0, result.totalSnow);
+            totalSnow[j] = result.totalSnow = max(lastResult.totalSnow, result.totalSnow);
             visibility[j] = static_cast<uint16_t>(result.visibility);
             windDirection[j] = static_cast<uint16_t>(result.WindDirection());
             windSpeed[j] = static_cast<uint16_t>(wxModel == WeatherModel::HRRR ? result.windSpeed : result.WindSpeed());
+
+            lastResult = result;
         }
 
         jWx["dewpoint"] = dewpoint;
