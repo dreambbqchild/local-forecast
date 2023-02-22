@@ -85,6 +85,11 @@ const cellColor = (value) => {
     return `rgb(${rgb.join(',')});`;
 }
 
+function* totalNew(howMany) {
+    for(let i = 0; i < howMany; i++)
+        yield "<td>Total</td><td>New</td>";
+}
+
 let folder = path.join('forecasts', 'hrrr');
 if(process.argv.length > 2)
     folder = path.join('forecasts', process.argv[2]);
@@ -97,9 +102,11 @@ for(const [name, location] of Object.entries(forecast.locations)) {
     if(location.isCity)
         continue;
 
-    tableHtml += `<td>${name}</td>`
+    tableHtml += `<td colspan="2">${name}</td>`
     tableData.push(location.wx.totalSnow);
 }
+
+tableHtml += `</tr><tr><td>Time</td>${[...totalNew(tableData.length)].join('')}`;
 
 tableHtml += '</tr></thead><tbody>';
 for(const [index, strDate] of forecast.forecastTimes.entries()) {
@@ -108,11 +115,14 @@ for(const [index, strDate] of forecast.forecastTimes.entries()) {
         continue;
 
     if(!date.getHours())
-        tableHtml += `<tr><td colspan="${tableData.length + 1}">${date.toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', weekday: 'long'})}</td></tr>`;
+        tableHtml += `<tr><td colspan="${tableData.length * 2 + 1}">${date.toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', weekday: 'long'})}</td></tr>`;
 
     tableHtml += `<tr><td>${date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}</td>`;
-    for(const totalSnow of tableData)
-        tableHtml += `<td style="background: ${cellColor(totalSnow[index])}">${totalSnow[index].toFixed(2)}</td>`;
+    for(const totalSnow of tableData){
+        const total = totalSnow[index];
+        const newSnow = index ? total - totalSnow[index - 1] : total;
+        tableHtml += `<td style="background: ${cellColor(total)}">${total.toFixed(2)}</td><td style="background: ${cellColor(total)}">${newSnow.toFixed(2)}</td>`;
+    }
     tableHtml += "</tr>";
 }
 
