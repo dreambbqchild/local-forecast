@@ -20,7 +20,6 @@ const dir = (deg, useArrows = true) => {
 
 const addHoursToDate = (date, hours) => new Date(date.getTime() + hours * 60 * 60 * 1000);
 const prettyDate = (date) => date.toLocaleDateString('en-US', { timeZone, day: '2-digit', month: '2-digit' });
-const prettyTime = (date) => date.toLocaleTimeString('en-US', { timeZone });
 const tccEmoji = (itcc, lightning, precipType, precipRate) =>
 {   
     if(!precipRate && lightning)
