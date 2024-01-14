@@ -1,9 +1,13 @@
 .env
 .vscode
+*.DS_Store
+*.ttf
+*.zip
 locations.cpp
 /node_modules
 /build
-/Release
 /data
 /forecasts
+/media
+/Release
 /renderings

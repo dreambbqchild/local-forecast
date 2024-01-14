@@ -109,8 +109,8 @@ for(const [name, location] of Object.entries(forecast.locations)) {
 tableHtml += `<td></td></tr><tr><td>Time</td>${[...totalNew(tableData.length)].join('')}<td>Time</td>`;
 
 tableHtml += '</tr></thead><tbody>';
-for(const [index, strDate] of forecast.forecastTimes.entries()) {
-    const date = new Date(strDate);
+for(const [index, timet] of forecast.forecastTimes.entries()) {
+    const date = new Date(timet * 1000);
     if(date < now)
         continue;
 
