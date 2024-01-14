@@ -50,7 +50,7 @@ class DrawTextContext : public IDrawTextContextObjC {
             CFArrayRef arrFontDescriptors = CTFontManagerCreateFontDescriptorsFromURL((CFURLRef)nsFontUrl);
             CTFontDescriptorRef fontDescriptor = (CTFontDescriptorRef)CFArrayGetValueAtIndex( arrFontDescriptors, 0 );
                 
-            font = (__bridge  NSFont*)CTFontCreateWithFontDescriptor(fontDescriptor, fontSize, nil);
+            font = (__bridge_transfer  NSFont*)CTFontCreateWithFontDescriptor(fontDescriptor, fontSize, nil);
             CFRelease(arrFontDescriptors);
         }
 

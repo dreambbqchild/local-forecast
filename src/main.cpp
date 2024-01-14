@@ -26,12 +26,6 @@ namespace fs = std::filesystem;
 #define OptIs(s) !strcmp(argv[i], s)
 #define NextI() NextICheck(i, argc)
 
-static void usage(const char* prog)
-{
-    printf("Usage: %s grib_file\n", prog);
-    exit(1);
-}
-
 struct ForecastData {
     string gribFileTemplate;
     time_t forecastStart;

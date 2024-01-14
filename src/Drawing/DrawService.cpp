@@ -37,8 +37,7 @@ class DrawService : public IDrawService
 
         void ClearCanvas(DSColor color)
         {
-            SafeReleaseCGColorRef cgColor(colorSpace, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
-            CGContextSetFillColorWithColor(context, cgColor);
+            CGContextSetRGBFillColor(context, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
             CGContextFillRect(context, {0, 0, (double)width, (double)height});
         }
 
@@ -142,14 +141,12 @@ class DrawService : public IDrawService
 
         void SetFillColor(DSColor color)
         {
-            SafeReleaseCGColorRef cgColor(colorSpace, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
-            CGContextSetFillColorWithColor(context, cgColor);
+            CGContextSetRGBFillColor(context, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
         }
 
         void SetStrokeColor(DSColor color)
         {
-            SafeReleaseCGColorRef cgColor(colorSpace, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
-            CGContextSetStrokeColorWithColor(context, cgColor);
+            CGContextSetRGBStrokeColor(context, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
         }
 
         void FillActivePath()

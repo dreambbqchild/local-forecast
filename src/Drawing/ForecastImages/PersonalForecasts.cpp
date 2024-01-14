@@ -81,7 +81,7 @@ void DivideColumn(IDrawTextContext* textContext, bool isMeasurePass, vector<doub
     columns++;
 }
 
-void LayoutColumns(IDrawService* draw, double xOffset, vector<DayLabelInfo>& dayLabels, vector<double> columnXs)
+void LayoutColumns(unique_ptr<IDrawService>& draw, double xOffset, vector<DayLabelInfo>& dayLabels, vector<double> columnXs)
 {
     const char* columnLabels[] = 
     {
@@ -205,7 +205,7 @@ void DrawWithColor(IDrawTextContext* textContext, double dValue, string strValue
     textContext->SetTextStrokeColorWithThickness(PredefinedColors::white, 0);
 }
 
-DSSize RenderHourlyForecastForLocation(bool isMeasurePass, IDrawService* draw, Json::Value& root, Json::Value& location, double xOffset, double areaWidth, system_clock::time_point& now, vector<double>& columnXs, int32_t maxRows)
+DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawService>& draw, Json::Value& root, Json::Value& location, double xOffset, double areaWidth, system_clock::time_point& now, vector<double>& columnXs, int32_t maxRows)
 {
     system_clock::time_point sunrise, sunset;
     vector<DayLabelInfo> dayLabels;
@@ -344,7 +344,7 @@ if(TestDouble(value))\
         AddSummaryLine(s, FONT_SIZE * 1.5, c);\
 }\
 
-void RenderSummaryImageForLocation(IDrawService* draw, const SummaryData& summaryData, system_clock::time_point& now, const DSSize& size, int32_t maxRows)
+void RenderSummaryImageForLocation(unique_ptr<IDrawService>& draw, const SummaryData& summaryData, system_clock::time_point& now, const DSSize& size, int32_t maxRows)
 {
     DSRect bounds = {0, 0, size.width, size.height};
 
@@ -401,7 +401,7 @@ void PersonalForecasts::RenderAll(fs::path forecastDataOutputDir, int32_t maxRow
     //Measure Pass
     {
         auto draw = unique_ptr<IDrawService>(AllocDrawService(totalWidth, imageHeight));
-        auto size = RenderHourlyForecastForLocation(true, draw.get(), root, locations.at(0), 0, 0, now, columnXs, maxRows);
+        auto size = RenderHourlyForecastForLocation(true, draw, root, locations.at(0), 0, 0, now, columnXs, maxRows);
         xOffset = totalWidth - size.width;
         forecastAreaWidth = size.width;
         imageHeight = max(defaultImageHeight, static_cast<uint32_t>(ceil(size.height)));
@@ -420,12 +420,12 @@ void PersonalForecasts::RenderAll(fs::path forecastDataOutputDir, int32_t maxRow
         #pragma omp critical
         cout << "Rendering Personal Forecast for: " << location["id"].asString() << " (" << index << ")" << endl;
         
-        RenderHourlyForecastForLocation(false, draw.get(), root, location, xOffset, forecastAreaWidth, now, columnXs, maxRows);
+        RenderHourlyForecastForLocation(false, draw, root, location, xOffset, forecastAreaWidth, now, columnXs, maxRows);
         
-        auto& summaryData = summaryDatum[index];
-        CollectSummaryDataForLocation(location["id"].asString(), summaryData, root, location, maxRows);
-        RenderSummaryImageForLocation(draw.get(), summaryData, now, { xOffset, static_cast<double>(imageHeight) }, maxRows);
+        // auto& summaryData = summaryDatum[index];
+        // CollectSummaryDataForLocation(location["id"].asString(), summaryData, root, location, maxRows);
+        // RenderSummaryImageForLocation(draw.get(), summaryData, now, { xOffset, static_cast<double>(imageHeight) }, maxRows);
 
-        draw->Save(forecastDataOutputDir / GenerateFileName(index));
+        //draw->Save(forecastDataOutputDir / GenerateFileName(index));
     }
 }
