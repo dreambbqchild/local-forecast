@@ -11,11 +11,11 @@ using namespace std;
 
 struct SaveData {
     time_t time;
-    WeatherModel wxModel;
+    WeatherModel weatherModel;
     uint16_t maxGribIndex, skipToGribNumber;
 };
 
-time_t GetStartTimeForWeatherModelDownload(WeatherModel wxModel)
+time_t GetStartTimeForWeatherModelDownload(WeatherModel weatherModel)
 {
     auto now = time(nullptr);
     tm gmtm = {0};
@@ -24,9 +24,9 @@ time_t GetStartTimeForWeatherModelDownload(WeatherModel wxModel)
     gmtime_r(&now, &gmtm);
     auto fromLastDivBy6Hr = gmtm.tm_hour % 6;
     now -= secondsInHour * fromLastDivBy6Hr;
-    if(wxModel == WeatherModel::HRRR && fromLastDivBy6Hr == 0 && gmtm.tm_min < 55)
+    if(weatherModel == WeatherModel::HRRR && fromLastDivBy6Hr == 0 && gmtm.tm_min < 55)
         now -= secondsInHour * 6;
-    else if(wxModel == WeatherModel::GFS && fromLastDivBy6Hr <= 4 && gmtm.tm_min < 55)
+    else if(weatherModel == WeatherModel::GFS && fromLastDivBy6Hr <= 4 && gmtm.tm_min < 55)
         now -= secondsInHour * 6;
 
     gmtime_r(&now, &gmtm);
@@ -36,9 +36,9 @@ time_t GetStartTimeForWeatherModelDownload(WeatherModel wxModel)
     return mkgmtime(&gmtm);
 }
 
-string GetFilePathTemplate(string outputDirectory, WeatherModel wxModel)
+string GetFilePathTemplate(string outputDirectory, WeatherModel weatherModel)
 {
-    switch(wxModel)
+    switch(weatherModel)
     {
         case WeatherModel::HRRR:
             return fs::path(outputDirectory) / string("hrrr-%02d.grib2");
@@ -48,11 +48,11 @@ string GetFilePathTemplate(string outputDirectory, WeatherModel wxModel)
     return "";
 }
 
-string GetUrlForWeatherModel(WeatherModel wxModel, int32_t hour, int32_t forecastIndex, const char* timeStamp)
+string GetUrlForWeatherModel(WeatherModel weatherModel, int32_t hour, int32_t forecastIndex, const char* timeStamp)
 {
     stringstream urlStream;
     urlStream.precision(6);
-    if(wxModel == WeatherModel::HRRR)
+    if(weatherModel == WeatherModel::HRRR)
     {
         urlStream << "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?file=hrrr.t" <<
             setfill('0') << setw(2) << hour <<
@@ -64,7 +64,7 @@ string GetUrlForWeatherModel(WeatherModel wxModel, int32_t hour, int32_t forecas
             "&bottomlat=" << bottomlat << 
             "&dir=%2Fhrrr." << timeStamp << "%2Fconus";
     }
-    else if(wxModel == WeatherModel::GFS)
+    else if(weatherModel == WeatherModel::GFS)
     {
         double gfsLeftlon = leftlon - 0.5,
                gfsToplat = toplat + 0.5,
@@ -85,7 +85,7 @@ string GetUrlForWeatherModel(WeatherModel wxModel, int32_t hour, int32_t forecas
     return urlStream.str();
 }
 
-void SaveDownloadInfo(string outputDirectory, WeatherModel wxModel, uint16_t maxGribIndex, uint16_t skipToGribNumber, time_t forecastStartTime)
+void SaveDownloadInfo(string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber, time_t forecastStartTime)
 {
     auto dlInfo = fs::path(outputDirectory) / string("downloadInfo.bin");
     auto f = fopen(dlInfo.c_str(), "wb");
@@ -94,7 +94,7 @@ void SaveDownloadInfo(string outputDirectory, WeatherModel wxModel, uint16_t max
         cerr << "Unable to open " << dlInfo << endl;
         exit(1);
     }
-    SaveData saveData = {forecastStartTime, wxModel, maxGribIndex, skipToGribNumber};
+    SaveData saveData = {forecastStartTime, weatherModel, maxGribIndex, skipToGribNumber};
     fwrite(&saveData, sizeof(SaveData), 1, f);
     fclose(f);
 }
@@ -132,13 +132,13 @@ GribDownloader::GribDownloader(string outputDirectory)
     LoadDownloadInfo(outputDirectory, saveData, true);
     Init(static_cast<void*>(&saveData));
 
-    filePathTemplate = ::GetFilePathTemplate(outputDirectory, saveData.wxModel);
+    filePathTemplate = ::GetFilePathTemplate(outputDirectory, saveData.weatherModel);
 }
 
-GribDownloader::GribDownloader(string outputDirectory, WeatherModel wxModel, uint16_t maxGribIndex, uint16_t skipToGribNumber)
-    :  maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), usingCachedMode(false), wxModel(wxModel), forecastStartTime(GetStartTimeForWeatherModelDownload(wxModel)), outputDirectory(outputDirectory)
+GribDownloader::GribDownloader(string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber)
+    :  maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), usingCachedMode(false), weatherModel(weatherModel), forecastStartTime(GetStartTimeForWeatherModelDownload(weatherModel)), outputDirectory(outputDirectory)
 {
-    filePathTemplate = ::GetFilePathTemplate(outputDirectory, wxModel);
+    filePathTemplate = ::GetFilePathTemplate(outputDirectory, weatherModel);
 }
 
 void GribDownloader::Init(void* vSaveData)
@@ -147,9 +147,9 @@ void GribDownloader::Init(void* vSaveData)
     forecastStartTime = saveData->time;
     maxGribIndex = saveData->maxGribIndex;
     skipToGribNumber = saveData->skipToGribNumber;
-    wxModel = saveData->wxModel;
+    weatherModel = saveData->weatherModel;
 
-    cout << "Loaded the " << (wxModel == WeatherModel::GFS ? "GFS" : "HRRR") << " from cache..." << endl;
+    cout << "Loaded the " << (weatherModel == WeatherModel::GFS ? "GFS" : "HRRR") << " from cache..." << endl;
 }
 
 void GribDownloader::Download()
@@ -171,15 +171,15 @@ void GribDownloader::Download()
     gmtime_r(&forecastStartTime, &forecastStart);
     strftime(timeStamp, 9, "%Y%m%d", &forecastStart);
 
-    cout << "Downloading the " << (wxModel == WeatherModel::GFS ? "GFS" : "HRRR") << " model with timestamp " << timeStamp << " at hour " << forecastStart.tm_hour << "..." << endl;
+    cout << "Downloading the " << (weatherModel == WeatherModel::GFS ? "GFS" : "HRRR") << " model with timestamp " << timeStamp << " at hour " << forecastStart.tm_hour << "..." << endl;
 
     #pragma omp parallel for num_threads(3)
     for(uint32_t i = skipToGribNumber; i <= maxGribIndex; i++)
     {
-        if(wxModel == WeatherModel::GFS && i > 120 && i % 3 != 0)
+        if(weatherModel == WeatherModel::GFS && i > 120 && i % 3 != 0)
             continue;
 
-        auto url = GetUrlForWeatherModel(wxModel, forecastStart.tm_hour, i, timeStamp);
+        auto url = GetUrlForWeatherModel(weatherModel, forecastStart.tm_hour, i, timeStamp);
         cout << "Thread " << omp_get_thread_num() << ": Downloading " << url << endl;
         char outfilename[FILENAME_MAX] = {0};
         snprintf(outfilename, FILENAME_MAX, filePathTemplate.c_str(), i);
@@ -190,7 +190,7 @@ void GribDownloader::Download()
         fclose(fp);
     }
     
-    SaveDownloadInfo(outputDirectory, wxModel, maxGribIndex, skipToGribNumber, forecastStartTime);
+    SaveDownloadInfo(outputDirectory, weatherModel, maxGribIndex, skipToGribNumber, forecastStartTime);
 
     cout << "Downloads complete!" << endl;
 }

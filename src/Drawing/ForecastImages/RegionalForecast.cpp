@@ -1,4 +1,5 @@
 #include "Characters.h"
+#include "Error.h"
 #include "RegionalForecast.h"
 #include "HttpClient.h"
 #include "DateTime.h"
@@ -7,10 +8,12 @@
 #include <string.h>
 
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 
 using namespace std;
 using namespace PredefinedColors;
+namespace fs = std::filesystem;
 
 namespace Labels {
     const char * now = "Now",
@@ -336,6 +339,9 @@ Json::Value RegionalForecast::LoadForecast(const char* cacheFile, bool useCached
     if(useCached || !appid)
     {
         cout << "Returning data cached in " << cacheFile << endl;
+        if(!fs::exists(cacheFile))
+            ERR_OUT(cacheFile << " not found. Nor was the OPENWEATHERMAP_APPID environment variable set. Exiting.")
+
         ifstream inStream;
         inStream.open(cacheFile);
         inStream >> forecastRoot;

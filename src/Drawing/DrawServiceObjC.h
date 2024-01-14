@@ -1,6 +1,4 @@
-#ifndef DRAWSERVICEOBJC_H
-#define DRAWSERVICEOBJC_H
-
+#pragma once
 #include "DrawService.h"
 #include "SafeReleases.h"
 
@@ -10,13 +8,13 @@ const size_t bitsPerComponent = 8;
 
 inline double ToComponentDouble(uint32_t value) { return value / (double)((1 << bitsPerComponent) - 1); }
 
-inline CGPoint ToCG(DSPoint value) {return {value.x, value.y}; }
-inline CGSize ToCG(DSSize value) { return {value.width, value.height}; }
-inline CGRect ToCG(DSRect value) { return {{value.origin.x, value.origin.y},{value.size.width, value.size.height}}; }
+inline CGPoint ToCG(const DSPoint& value) {return {value.x, value.y}; }
+inline CGSize ToCG(const DSSize& value) { return {value.width, value.height}; }
+inline CGRect ToCG(const DSRect& value) { return {{value.origin.x, value.origin.y},{value.size.width, value.size.height}}; }
 
-inline DSPoint FromCG(CGPoint value) { return {value.x, value.y}; }
-inline DSSize FromCG(CGSize value) { return {value.width, value.height};}
-inline DSRect FromCG(CGRect value) { return {{value.origin.x, value.origin.y},{value.size.width, value.size.height}}; }
+inline DSPoint FromCG(const CGPoint& value) { return {value.x, value.y}; }
+inline DSSize FromCG(const CGSize& value) { return {value.width, value.height};}
+inline DSRect FromCG(const CGRect& value) { return {{value.origin.x, value.origin.y},{value.size.width, value.size.height}}; }
 
 class IDrawTextContextObjC : public IDrawTextContext {
 public:
@@ -25,5 +23,3 @@ public:
 };
 
 CGImageRef RunDrawTextContext(std::function<DSRect(IDrawTextContext*)> callback, DSRect& textBounds);
-
-#endif

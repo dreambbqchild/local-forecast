@@ -1,6 +1,4 @@
-#ifndef CHARACTERS_H
-#define CHARACTERS_H
-
+#pragma once
 #include <filesystem>
 
 namespace Emoji {
@@ -51,7 +49,7 @@ namespace Emoji {
     const size_t EmojiCount = sizeof(All) / sizeof(const char*);
 
     inline std::string Path(const char* emojiName) { return std::string("emoji") + std::filesystem::path::preferred_separator + std::string(emojiName) + ".png"; }
-    inline const char* GetSkyEmoji(int32_t totalCoudCover, bool lightning, std::string precipType, double precipRate)
+    static const char* GetSkyEmoji(int32_t totalCoudCover, bool lightning, std::string precipType, double precipRate)
     {   
         if(!precipRate && lightning)
             return Emoji::cloud_with_lightning;
@@ -92,5 +90,3 @@ namespace Unicode {
 
     inline const char* GetWindArrow(int deg) { return arrows[((deg + 22) % 360) / 45]; }
 }
-
-#endif

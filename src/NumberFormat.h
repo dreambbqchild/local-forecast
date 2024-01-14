@@ -1,5 +1,4 @@
-#ifndef NUMBERFORMAT_H
-#define NUMBERFORMAT_H
+#pragma once
 
 #include <stdint.h>
 #include <iomanip> 
@@ -19,5 +18,3 @@ inline std::string ToStringWithPrecision(int32_t precision, double value)
     ss << std::fixed << std::setprecision(precision) << value;
     return ss.str();
 }
-
-#endif

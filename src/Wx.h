@@ -1,5 +1,4 @@
-#ifndef WX_H
-#define WX_H
+#pragma once
 #include "Calcs.h"
 
 enum PrecipitationType 
@@ -39,5 +38,3 @@ struct Wx
 };
 
 double ScaledValueForTypeAndTemp(PrecipitationType type, double value, double temperature);
-
-#endif

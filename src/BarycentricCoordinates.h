@@ -46,7 +46,7 @@ inline double CheaterDeterminant(const CheaterMatrix& mat)
 }
 
 //Assumes a triangle defined as leg, leg, hypotenuse. resultWeights also assumed to be 3.
-inline CoordForTriangleResult BarycentricCoordinatesForTriangle(const Vector2d& pq, const Vector2d* v, double* resultWeights, double edgeSlop = 0.001)
+static CoordForTriangleResult BarycentricCoordinatesForTriangle(const Vector2d& pq, const Vector2d* v, double* resultWeights, double edgeSlop = 0.001)
 {
     using namespace boost::qvm;
     auto invdet = 1.0 / CheaterDeterminant(SetupCheater(v[0], v[1], v[2]));
@@ -84,7 +84,7 @@ inline double CoTangent(const Vector2d& a, const Vector2d& b, const Vector2d& c)
 //Note: This function is only good for points strictly inside the polygon.
 //It also doesn't do nice things like detect if the point is in or out of the polygon reliably, unlike the triangle version.
 template <int N>
-inline void GeneralBarycentric2d(const Vector2d& p, const Vector2d v[N], double w[N])
+static void GeneralBarycentric2d(const Vector2d& p, const Vector2d v[N], double w[N])
 {
     using namespace boost::qvm;
 
@@ -102,7 +102,7 @@ inline void GeneralBarycentric2d(const Vector2d& p, const Vector2d v[N], double 
 		w[i] /= weightSum;
 }
 
-inline bool BarycentricCoordinatesForCWTetrahedron(const Vector2d& p, const Vector2d v[4], double w[4], double edgeSlop = 0.001)
+static bool BarycentricCoordinatesForCWTetrahedron(const Vector2d& p, const Vector2d v[4], double w[4], double edgeSlop = 0.001)
 {
     auto result = BarycentricCoordinatesForTriangle(p, v, w, edgeSlop);
     if(result < CoordForTriangleResult::HypotenuseEdge)

@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-enum WeatherModel {HRRR, GFS};
+enum WeatherModel { HRRR, GFS };
 
 struct FieldData 
 {

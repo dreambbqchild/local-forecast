@@ -1,5 +1,4 @@
-#ifndef DRAWSERVICE_H
-#define DRAWSERVICE_H
+#pragma once
 #include "Calcs.h"
 
 #include <cstdint>
@@ -127,5 +126,3 @@ inline double ContrastRatio(const DSColor& color1, const DSColor& color2)
 }
 
 DSRect CalcRectForCenteredLocation(DSSize area, DSSize rendering, DSPoint offset = {0});
-
-#endif

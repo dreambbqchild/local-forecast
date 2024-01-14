@@ -16,7 +16,7 @@ inline const char* NumberSuffix(T value)
         return "rd";
 }
 
-inline std::string JoinWithCommasButFinishWithAmpersand(std::vector<std::string>& names, bool doSort)
+static std::string JoinWithCommasButFinishWithAmpersand(std::vector<std::string>& names, bool doSort)
 {
     if(names.size() == 1)
         return names[0];

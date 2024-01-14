@@ -24,7 +24,7 @@ private:
     vector<string> highNames, lowNames, windNames, snowNamesAll, iceNamesAll, rainNamesAll, snowNamesExtreme, iceNamesExtreme, rainNamesExtreme;
 
     template <typename T>
-    inline void ManageExtremes(vector<string>& names, T& currentExtremeValue, const T& currentValue, const string& locationName, bool seekingMax = true)
+    void ManageExtremes(vector<string>& names, T& currentExtremeValue, const T& currentValue, const string& locationName, bool seekingMax = true)
     {
         if(seekingMax ? currentValue > currentExtremeValue : currentValue < currentExtremeValue)
         {
@@ -36,7 +36,7 @@ private:
             names.push_back(locationName);
     }
 
-    inline void ManagePrecipExtremes(vector<string>& names, vector<string>& extremeNames, double& currentExtremeValue, double currentValue, const string& locationName, int32_t locationMax)
+    void ManagePrecipExtremes(vector<string>& names, vector<string>& extremeNames, double& currentExtremeValue, double currentValue, const string& locationName, int32_t locationMax)
     {
         if(!TestDouble(currentValue))
             return;

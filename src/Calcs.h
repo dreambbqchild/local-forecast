@@ -1,5 +1,4 @@
-#ifndef CALCS_H
-#define CALCS_H
+#pragma once
 #include <stdint.h>
 #include <math.h>
 
@@ -34,5 +33,3 @@ inline double WindDirection(double u, double v) { return (180 / 3.14159265358979
 inline double WindSpeed(double u, double v) { return sqrt(u * u + v * v) * 1.94384; }
 
 inline bool TestDouble(double dValue, int32_t multiplier = 100, int32_t threshold = 1) { return static_cast<int32_t>(floor(dValue * multiplier)) >= threshold; }
-
-#endif

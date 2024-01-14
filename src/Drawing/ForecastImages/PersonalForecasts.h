@@ -1,5 +1,4 @@
-#ifndef PERSONALFORECASTS_H
-#define PERSONALFORECASTS_H
+#pragma once
 
 #include "Drawing/DrawService.h"
 #include "ImageBase.h"
@@ -15,5 +14,3 @@ public:
     PersonalForecasts(Json::Value& root) : root(root) {}
     void RenderAll(std::filesystem::path forecastDataOutputDir, int32_t maxRows = 24);
 };
-
-#endif

@@ -33,22 +33,7 @@ public:
     inline int32_t GetPointsPerRow(){ return pointsPerRow; }
     inline int32_t GetGeoCoordsLength(){ return geoCoordsLength; }
 
-    inline bool TryReadFieldData(GribReader& reader, int32_t index)
-    {
-        if(!reader.GetFieldData(allData[index]))
-            return false;
-
-        if(!validFieldDataIndexes.size())
-        {
-            geoCoords = reader.GetGeoCoords();
-            pointsPerRow = reader.GetColumns();
-            geoCoordsLength = reader.GetNumberOfValues();
-        }
-
-        reverseFieldIndexLookup[index] = reverseFieldIndexLookup.size();
-        validFieldDataIndexes.push_back(index);
-        return true;
-    }
+    bool TryReadFieldData(GribReader& reader, int32_t index);
 
     inline bool HasDataAtIndex(int32_t i){ return allData == nullptr ? false : allData[i].size(); }
 };

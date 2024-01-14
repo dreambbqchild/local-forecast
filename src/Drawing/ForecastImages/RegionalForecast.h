@@ -1,5 +1,4 @@
-#ifndef NEXT24HOURFORECAST_H
-#define NEXT24HOURFORECAST_H
+#pragma once
 
 #include "Drawing/DrawService.h"
 #include "ImageBase.h"
@@ -23,5 +22,3 @@ private:
 public:
     void Render(const char* cacheFile, bool useCached = false);
 };
-
-#endif

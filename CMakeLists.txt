@@ -13,8 +13,7 @@ endif()
 
 link_directories(/usr/local/lib)
 
-add_executable(local-forecast 
-    src/main.cpp 
+add_library(localforecast SHARED
     src/Astronomy/Astronomy.cpp    
     src/Data/ForecastJsonExtension.cpp
     src/Data/StringCache.cpp
@@ -31,6 +30,8 @@ add_executable(local-forecast
     src/Grib/GribDownloader.cpp
     src/Grib/GribProcessor.cpp     
     src/Grib/GribReader.cpp
+    src/Grib/LocationWeatherData.cpp
+    src/LocalForecastLib.cpp
     src/Locations.cpp
     src/Text/SummaryForecast.cpp
     src/Video/Encoder.cpp
@@ -43,5 +44,11 @@ add_executable(local-forecast
 
 find_package(OpenMP)
 
-set_property (TARGET local-forecast APPEND_STRING PROPERTY COMPILE_FLAGS "-fobjc-arc")
-target_link_libraries(local-forecast avcodec avformat curl eccodes GeographicLib jsoncpp OpenMP::OpenMP_CXX sunset swscale "-framework AppKit"  "-framework CoreGraphics" "-framework ImageIO" "-framework UniformTypeIdentifiers")
+set_property (TARGET localforecast APPEND_STRING PROPERTY COMPILE_FLAGS "-fobjc-arc")
+target_link_libraries(localforecast avcodec avformat curl eccodes GeographicLib jsoncpp OpenMP::OpenMP_CXX sunset swscale "-framework AppKit"  "-framework CoreGraphics" "-framework ImageIO" "-framework UniformTypeIdentifiers")
+
+add_executable(local-forecast 
+    src/main.cpp 
+)
+
+target_link_libraries(local-forecast localforecast)

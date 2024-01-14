@@ -1,5 +1,4 @@
-#ifndef IMAGEBASE_H
-#define IMAGEBASE_H
+#pragma once
 
 #include <stdint.h>
 
@@ -10,5 +9,3 @@ class ImageBase {
 protected:
     static const uint32_t totalWidth = defaultImageWidth, totalHeight = defaultImageHeight;
 };
-
-#endif
