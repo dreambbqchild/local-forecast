@@ -4,10 +4,14 @@ set (CMAKE_CXX_STANDARD 20)
 
 include_directories(src)
 include_directories(/usr/local/include)
-include_directories(/opt/homebrew/include)
+
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+    include_directories(/opt/homebrew/include)
+
+    link_directories(/opt/homebrew/lib)
+endif()
 
 link_directories(/usr/local/lib)
-link_directories(/opt/homebrew/lib)
 
 add_executable(local-forecast 
     src/main.cpp 

@@ -40,7 +40,7 @@ struct ForecastData {
 };
 
 struct Options {
-    bool useCache, renderWeatherMaps, renderRegionalForecast, renderPersonalForecasts, renderVideo;
+    bool useCache, renderWeatherMaps, renderRegionalForecast, renderPersonalForecasts, renderText, renderVideo;
     WeatherModel wxModel;
     string gribFilePath, forecastPath;
     uint16_t maxGribIndex, skipToGribNumber;
@@ -69,7 +69,7 @@ inline ForecastData ForecastDataFromDownloader(GribDownloader &downloader)
 
 Options GetOptionsFromArgs(int argc, const char* argv[])
 {
-    Options opts = {false, true, true, true, true, WeatherModel::HRRR, "./data/hrrr", "./forecasts/hrrr", 48, 1};
+    Options opts = {false, true, true, true, true, true, WeatherModel::HRRR, "./data/hrrr", "./forecasts/hrrr", 48, 1};
     for(auto i = 0; i < argc; i++)
     {
         if(OptIs("-useCache"))
@@ -80,6 +80,8 @@ Options GetOptionsFromArgs(int argc, const char* argv[])
             opts.renderRegionalForecast = false;
         else if(OptIs("-suppressPersonalForecasts"))
             opts.renderPersonalForecasts = false;
+        else if(OptIs("-suppressText"))
+            opts.renderText = false;
         else if(OptIs("-suppressVideo"))
             opts.renderVideo = false;
         else if(OptIs("-model") && NextI())
@@ -110,7 +112,11 @@ Options GetOptionsFromArgs(int argc, const char* argv[])
 
 void ProcessGribData(const Options& opts, Json::Value& root, LocationWeatherData& locationWeatherData, GeographicCalcs& geoCalcs)
 {
+    if(!opts.renderPersonalForecasts && !opts.renderWeatherMaps && !opts.renderText && !opts.renderVideo)
+        return;
+
     ForecastData data;
+
     if(opts.useCache)
     {
         GribDownloader downloader(opts.gribFilePath);
@@ -166,8 +172,11 @@ void RenderForecastAssets(const Options& opts, Json::Value& root, LocationWeathe
         return;
     }
 
-    auto textSummary = unique_ptr<ISummaryForecast>(AllocSummaryForecast());
-    textSummary->Render(opts.forecastPath, root);
+    if(opts.renderText)
+    {
+        auto textSummary = unique_ptr<ISummaryForecast>(AllocSummaryForecast());
+        textSummary->Render(opts.forecastPath, root);
+    }
 }
 
 string SelectAudioFile(system_clock::time_point now)
