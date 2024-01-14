@@ -3,8 +3,11 @@ project(local-forecast VERSION 1.0.0)
 set (CMAKE_CXX_STANDARD 20)
 
 include_directories(src)
+include_directories(/usr/local/include)
+include_directories(/opt/homebrew/include)
 
 link_directories(/usr/local/lib)
+link_directories(/opt/homebrew/lib)
 
 add_executable(local-forecast 
     src/main.cpp 
