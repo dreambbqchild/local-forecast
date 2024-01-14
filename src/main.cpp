@@ -3,17 +3,10 @@ extern "C"
     #include "LocalForecastLib.h"
 }
 
-#include <glob.h>
-#include <string.h>
-
-#include <fstream>
 #include <iostream>
-#include <random>
 #include <sstream>
 
 using namespace std;
-using namespace chrono;
-namespace fs = std::filesystem;
 
 #define OptIs(s) !strcmp(argv[i], s)
 #define NextI() NextICheck(i, argc)
