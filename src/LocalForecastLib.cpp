@@ -223,14 +223,14 @@ extern "C"
     void LocalForecastLibInit() { InitInternal(); }
     void LocalForecastLibRenderRegionalForecast() { RenderRegionalForecast(); }
         
-    void LocalForecastLibRenderLocalForecast(WxModel wxModel, const char* gribFilePath, const char* forecastFilePath, RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex)
+    void LocalForecastLibRenderLocalForecast(enum WxModel wxModel, const char* gribFilePath, const char* forecastFilePath, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex)
     {
         LocalForecastRunner runner(gribFilePath, forecastFilePath);
         runner.ProcessGribData((WeatherModel)wxModel, skipToGribNumber, maxGribIndex);
         runner.Run(renderTargets);
     }
 
-    void LocalForecastLibRenderCahcedLocalForecast(const char* gribFilePath, const char* forecastFilePath, RenderTargets renderTargets)
+    void LocalForecastLibRenderCahcedLocalForecast(const char* gribFilePath, const char* forecastFilePath, enum RenderTargets renderTargets)
     {
         LocalForecastRunner runner(gribFilePath, forecastFilePath);
         runner.ProcessCachedGribData();
