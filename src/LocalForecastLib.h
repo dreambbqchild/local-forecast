@@ -10,7 +10,7 @@ enum RenderTargets {
     WeatherMapsRenderTarget = (1 << 2),
     TextForecastRenderTarget = (1 << 3),
     VideoRenderTarget = (1 << 4),
-    All = RegionalForecastRenderTarget | PersonalForecastsRenderTarget | WeatherMapsRenderTarget | TextForecastRenderTarget | VideoRenderTarget
+    AllRenderTargets = RegionalForecastRenderTarget | PersonalForecastsRenderTarget | WeatherMapsRenderTarget | TextForecastRenderTarget | VideoRenderTarget
 };
 
 enum WxModel{ HRRRWxModel, GFSWxModel };
