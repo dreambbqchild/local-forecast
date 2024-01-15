@@ -34,7 +34,7 @@ Options GetOptionsFromArgs(int argc, const char* argv[])
 {
     Options opts = {
         .useCache = false, 
-        .renderTargets = RenderTargets::All, 
+        .renderTargets = RenderTargets::AllRenderTargets, 
         .wxModel = WxModel::HRRRWxModel, 
         .gribFilePath = "./data/hrrr", 
         .forecastPath ="./forecasts/hrrr", 
