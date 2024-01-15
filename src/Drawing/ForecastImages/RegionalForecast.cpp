@@ -331,12 +331,12 @@ size_t DownloadToStream(const void *data, size_t size, size_t nmemb, void *pDown
     return bytesProcessed;
 }
 
-Json::Value RegionalForecast::LoadForecast(const char* cacheFile, bool useCached)
+Json::Value RegionalForecast::LoadForecast(const char* cacheFile)
 {
     Json::Value forecastRoot;
     auto appid = getenv("OPENWEATHERMAP_APPID");
 
-    if(useCached || !appid)
+    if(!appid)
     {
         cout << "Returning data cached in " << cacheFile << endl;
         if(!fs::exists(cacheFile))
@@ -512,10 +512,10 @@ double RegionalForecast::DrawForecastBoxes(IDrawService* draw, double top, Forec
     return bottom;
 }
 
-void RegionalForecast::Render(const char* cacheFile, bool useCached)
+void RegionalForecast::Render(const char* cacheFile)
 {
     ForecastItems forecastItems = {0};
-    auto forecastRoot = LoadForecast(cacheFile, useCached);
+    auto forecastRoot = LoadForecast(cacheFile);
     FindForecastItems(forecastRoot, forecastItems);
 
     auto draw = unique_ptr<IDrawService>(AllocDrawService(totalWidth, totalHeight));

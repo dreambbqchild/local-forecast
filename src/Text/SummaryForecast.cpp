@@ -103,7 +103,7 @@ private:
         result << "● Going to be a rainy day for ya " << JoinNames(rainNamesAll) << ". " << JoinNames(rainNamesExtreme) << " " << SingularPlural(rainNamesExtreme.size(), "is", "are") << " forecast to get the most with " << fixed << setprecision(2) << extremes.rainTotal << R"(".)" << endl;
     }
 
-    string GetTextSummary(vector<SummaryData>& summaryDatum, string& lastDate)
+    string GetTextSummary(string moonEmoji, string moonPhase, vector<SummaryData>& summaryDatum, string& lastDate)
     {
         SummaryData extremes;
         for(auto& summaryData : summaryDatum)
@@ -117,7 +117,9 @@ private:
         }
 
         stringstream result;
-        result << "Between now and " << lastDate << ":" << endl
+        result << moonEmoji << " Today the moon will be in the " << moonPhase << "phase "<< endl
+            << endl
+            << "Between now and " << lastDate << ":" << endl
             << "● " << JoinNames(highNames) << " can expect the highest high of " << extremes.high << "ºF." << Snide(R"( (Going to have to turn on the AC))", extremes.high <= 0) << endl
             << "● " << JoinNames(lowNames) << " should see the lowest low of " << extremes.low << "ºF." << Snide(R"( (Yeah. That's a real "Low" there eh?))", extremes.low >= 70) << endl
             << "● " << JoinNames(windNames) << " " << SingularPlural(windNames.size(), "has", "have") << " the best chance to experience the highest sustained wind at " << extremes.wind << "mph." << Snide(R"( (All together now: "It's WIMDY!"))", extremes.wind >= 30) << endl;
@@ -162,7 +164,9 @@ public:
         });
 
         cout << "Rendering text forecast..." << endl;
-        auto textForecast = GetTextSummary(summaryDatum, lastDate);
+        auto nowDay = ToLocalTm(now).tm_mday;
+        auto moon = root["moon"][to_string(nowDay)];
+        auto textForecast = GetTextSummary(moon["emoji"].asString(), moon["name"].asString(), summaryDatum, lastDate);
         boost::algorithm::trim(textForecast);
         ofstream outStream(forecastDataOutputDir / string("forecast.txt"));
         outStream << textForecast;
