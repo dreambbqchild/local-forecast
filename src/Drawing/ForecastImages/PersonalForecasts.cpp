@@ -422,10 +422,10 @@ void PersonalForecasts::RenderAll(fs::path forecastDataOutputDir, int32_t maxRow
         
         RenderHourlyForecastForLocation(false, draw, root, location, xOffset, forecastAreaWidth, now, columnXs, maxRows);
         
-        // auto& summaryData = summaryDatum[index];
-        // CollectSummaryDataForLocation(location["id"].asString(), summaryData, root, location, maxRows);
-        // RenderSummaryImageForLocation(draw.get(), summaryData, now, { xOffset, static_cast<double>(imageHeight) }, maxRows);
+        auto& summaryData = summaryDatum[index];
+        CollectSummaryDataForLocation(location["id"].asString(), summaryData, root, location, maxRows);
+        RenderSummaryImageForLocation(draw, summaryData, now, { xOffset, static_cast<double>(imageHeight) }, maxRows);
 
-        //draw->Save(forecastDataOutputDir / GenerateFileName(index));
+        draw->Save(forecastDataOutputDir / GenerateFileName(index));
     }
 }
