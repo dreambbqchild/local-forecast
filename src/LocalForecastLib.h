@@ -1,5 +1,5 @@
-#ifndef LOCAL_FORECAST_LIB
-#define LOCAL_FORECAST_LIB
+#ifndef LOCAL_FORECAST_LIB_H
+#define LOCAL_FORECAST_LIB_H
 
 #include <stdint.h>
 
