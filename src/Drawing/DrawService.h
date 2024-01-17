@@ -18,12 +18,17 @@ struct DSRect
     DSSize size;
 };
 
-struct DSColor
-{
+struct DSColorComponets {
     uint8_t r = 0, 
     g = 0, 
     b = 0, 
     a = 255;
+};
+
+union DSColor
+{
+    DSColorComponets components;
+    uint32_t rgba;
 };
 
 namespace PredefinedColors
@@ -34,7 +39,8 @@ namespace PredefinedColors
         red = {255, 0, 0},
         orange = {255, 165, 0},
         cyan = {0, 255, 255},
-        discordBg = {53, 56, 62};
+        discordBg = {53, 56, 62},
+        transparent = {0, 0, 0, 0};
 }
 
 enum FontOptions
@@ -108,7 +114,7 @@ extern IBitmapContext* AllocBitmapContext(int32_t width, int32_t height);
 //https://www.w3.org/TR/WCAG20-TECHS/G17.html#G17-procedure
 inline double RGBLuminance(const DSColor& color)
 {
-    double rgb[3] = {color.r / 255.0, color.g / 255.0, color.b / 255.0};
+    double rgb[3] = {color.components.r / 255.0, color.components.g / 255.0, color.components.b / 255.0};
     for(auto i = 0; i < 3; i++)
         rgb[i] = rgb[i] <= 0.03928 ? rgb[i] / 12.92 : pow((rgb[i] + 0.055) / 1.055, 2.4);
 

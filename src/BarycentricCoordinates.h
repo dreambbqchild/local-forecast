@@ -137,10 +137,10 @@ static bool BarycentricCoordinatesForCWTetrahedron(const Vector2d& p, const Vect
 }
 
 template <typename T>
-inline double WeightValues4(T values[4], double resultWeights[4])
+inline T WeightValues4(T values[4], double resultWeights[4])
 {
-    return values[0] * resultWeights[0] + 
+    return static_cast<T>(values[0] * resultWeights[0] + 
         values[1] * resultWeights[1] + 
         values[2] * resultWeights[2] +
-        values[3] * resultWeights[3];
+        values[3] * resultWeights[3]);
 };

@@ -22,7 +22,7 @@ using namespace std;
 struct SetPixelData
 {
     DoublePoint pt;
-    uint8_t* px;
+    uint32_t* px;
 };
 
 template<> 
@@ -47,7 +47,7 @@ class MapOverlay : public IMapOverlay
         int32_t width, height;
         shared_ptr<IBitmapContext> bitmapContext;
         vector<SetPixelData> setPixels;
-        unordered_map<DoublePoint, uint8_t[4]> virtualPx; 
+        unordered_map<DoublePoint, uint32_t> virtualPx; 
 
         DSInt32Size GetSize() { return { width, height }; }
 
@@ -69,41 +69,47 @@ class MapOverlay : public IMapOverlay
             return RenderableDataPoint(topLeft) || RenderableDataPoint(topRight) || RenderableDataPoint(bottomLeft) || RenderableDataPoint(bottomRight);
         }
 
-        inline uint8_t* GetPixelInternal(DoublePoint pt)
+        inline uint32_t* GetPixelInternal(DoublePoint pt)
         {
             if(pt.x < 0 || pt.y < 0 || pt.x >= width || pt.y >= height)
                 return nullptr;
             else
-                return bitmapContext->GetPointer({static_cast<uint16_t>(pt.x), static_cast<uint16_t>(pt.y)});
+                return reinterpret_cast<uint32_t*>(bitmapContext->GetPointer({static_cast<uint16_t>(pt.x), static_cast<uint16_t>(pt.y)}));
         }
 
-        inline uint8_t* GetPixelInternal(double dx, double dy) { return GetPixelInternal({dx, dy}); }
+        inline uint32_t* GetPixelInternal(double dx, double dy) { return GetPixelInternal({dx, dy}); }
 
-        inline uint8_t* SetPixelInternal(DoublePoint pt, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+        inline uint32_t* SetPixelInternal(DoublePoint pt, const DSColor& color)
         {
-            uint8_t* px = GetPixelInternal(pt);
+            uint32_t* px = GetPixelInternal(pt);
             if(!px)
                 return nullptr;
 
-            px[0] = r;
-            px[1] = g;
-            px[2] = b;
-            px[3] = a;
+            *px = color.rgba;
 
             return px;    
         }
 
-        inline uint8_t* SetPixelInternal(double dx, double dy, uint8_t r, uint8_t g, uint8_t b, uint8_t a) { return SetPixelInternal({dx, dy}, r, g, b, a); }
+        inline uint32_t* SetPixelInternal(double dx, double dy, const DSColor& color) { return SetPixelInternal({dx, dy}, color); }
 
-        inline void SetPxColorWithWeights(Vector2d& pt, uint8_t values[4][4], double resultWeights[4])
+        inline void SetPxColorWithWeights(Vector2d& pt, DSColor values[4], double resultWeights[4])
         {
-            uint8_t rgba[4] = {0};
-            rgba[0] = WeightValues4(values[0], resultWeights);
-            rgba[1] = WeightValues4(values[1], resultWeights);
-            rgba[2] = WeightValues4(values[2], resultWeights);
-            rgba[3] = WeightValues4(values[3], resultWeights);
+            uint8_t u8Values[4][4] {
+                {values[0].components.r, values[1].components.r, values[2].components.r, values[3].components.r},
+                {values[0].components.g, values[1].components.g, values[2].components.g, values[3].components.g},
+                {values[0].components.b, values[1].components.b, values[2].components.b, values[3].components.b},
+                {values[0].components.a, values[1].components.a, values[2].components.a, values[3].components.a}
+            };
 
-            SetPixelInternal(pt.a[0], pt.a[1], rgba[0], rgba[1], rgba[2], rgba[3]);
+            DSColor color {
+                .components {
+                    .r = WeightValues4(u8Values[0], resultWeights),
+                    .g = WeightValues4(u8Values[1], resultWeights),
+                    .b = WeightValues4(u8Values[2], resultWeights),
+                    .a = WeightValues4(u8Values[3], resultWeights),
+                }                
+            };
+            SetPixelInternal(pt.a[0], pt.a[1], color);
         }
 
         //Small steps for the first and last to ensure pixel coloration around the borders of the trapazoid.
@@ -115,17 +121,14 @@ class MapOverlay : public IMapOverlay
         MapOverlay(uint32_t width, uint32_t height) 
         : width(width), height(height), bitmapContext(AllocBitmapContext(width, height)) {}
 
-        void SetPixel(double dx, double dy, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+        void SetPixel(double dx, double dy, const DSColor& color)
         {
-            auto px = SetPixelInternal(dx, dy, r, g, b, a);
+            auto px = SetPixelInternal(dx, dy, color);
             if(!px)
             {
-                auto& arr = virtualPx[{dx, dy}];
-                arr[0] = r;
-                arr[1] = g;
-                arr[2] = b;
-                arr[3] = a;
-                uint8_t* ptr = &arr[0];
+                auto& rgba = virtualPx[{dx, dy}];
+                rgba = color.rgba;                
+                uint32_t* ptr = &rgba;
                 setPixels.push_back({dx, dy, ptr});
             }
             else
@@ -167,11 +170,11 @@ class MapOverlay : public IMapOverlay
                     if(!BarycentricCoordinatesForCWTetrahedron(v, bounds, resultWeights))
                         continue;
 
-                    uint8_t values[4][4] = {
-                        { topLeft.px[0], topRight.px[0], bottomRight.px[0], bottomLeft.px[0] }, //r
-                        { topLeft.px[1], topRight.px[1], bottomRight.px[1], bottomLeft.px[1] }, //g
-                        { topLeft.px[2], topRight.px[2], bottomRight.px[2], bottomLeft.px[2] }, //b
-                        { topLeft.px[3], topRight.px[3], bottomRight.px[3], bottomLeft.px[3] }  //a
+                    DSColor values[4] = {
+                        {.rgba = *topLeft.px}, 
+                        {.rgba = *topRight.px}, 
+                        {.rgba = *bottomRight.px}, 
+                        {.rgba = *bottomLeft.px}
                     };
 
                     SetPxColorWithWeights(v, values, resultWeights);

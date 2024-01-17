@@ -37,7 +37,7 @@ class DrawService : public IDrawService
 
         void ClearCanvas(DSColor color)
         {
-            CGContextSetRGBFillColor(context, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
+            CGContextSetRGBFillColor(context, ToComponentDouble(color.components.r), ToComponentDouble(color.components.g), ToComponentDouble(color.components.b), ToComponentDouble(color.components.a));
             CGContextFillRect(context, {0, 0, (double)width, (double)height});
         }
 
@@ -141,12 +141,12 @@ class DrawService : public IDrawService
 
         void SetFillColor(DSColor color)
         {
-            CGContextSetRGBFillColor(context, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
+            CGContextSetRGBFillColor(context, ToComponentDouble(color.components.r), ToComponentDouble(color.components.g), ToComponentDouble(color.components.b), ToComponentDouble(color.components.a));
         }
 
         void SetStrokeColor(DSColor color)
         {
-            CGContextSetRGBStrokeColor(context, ToComponentDouble(color.r), ToComponentDouble(color.g), ToComponentDouble(color.b), ToComponentDouble(color.a));
+            CGContextSetRGBStrokeColor(context, ToComponentDouble(color.components.r), ToComponentDouble(color.components.g), ToComponentDouble(color.components.b), ToComponentDouble(color.components.a));
         }
 
         void FillActivePath()
@@ -201,16 +201,13 @@ public:
     void SetPixel(DSUInt16Point pt, DSColor color)
     {
         auto ptr = GetPointer(pt);
-        ptr[0] = color.r;
-        ptr[1] = color.g;
-        ptr[2] = color.b;
-        ptr[3] = color.a;
+        *ptr = color.rgba;
     }
 
     DSColor GetPixel(DSUInt16Point pt)
     {
         auto ptr = GetPointer(pt);
-        return { ptr[0], ptr[1], ptr[2], ptr[3] };
+        return { .rgba = *ptr };
     }
 
     uint8_t* GetPointer(DSUInt16Point pt)

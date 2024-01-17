@@ -131,7 +131,7 @@ private:
 
         random_device rando;
         std::mt19937 gen(rando());
-        uniform_int_distribution<int> dist(0, globResult.gl_pathc);
+        uniform_int_distribution<int> dist(0, globResult.gl_pathc - 1);
         auto index = dist(gen);
         string audioFile = globResult.gl_pathv[index];
         globfree(&globResult);

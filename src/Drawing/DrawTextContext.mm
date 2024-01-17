@@ -66,14 +66,14 @@ class DrawTextContext : public IDrawTextContextObjC {
 
         void SetTextFillColor(DSColor color)
         {
-            foregroundColor = [NSColor colorWithRed:ToComponentDouble(color.r) green:ToComponentDouble(color.g) blue:ToComponentDouble(color.b) alpha:ToComponentDouble(color.a)];
+            foregroundColor = [NSColor colorWithRed:ToComponentDouble(color.components.r) green:ToComponentDouble(color.components.g) blue:ToComponentDouble(color.components.b) alpha:ToComponentDouble(color.components.a)];
         }
 
         void SetTextStrokeColorWithThickness(DSColor color, double thickness)
         {
             if(thickness)
             {
-                strokeColor = [NSColor colorWithRed:ToComponentDouble(color.r) green:ToComponentDouble(color.g) blue:ToComponentDouble(color.b) alpha:ToComponentDouble(color.a)];
+                strokeColor = [NSColor colorWithRed:ToComponentDouble(color.components.r) green:ToComponentDouble(color.components.g) blue:ToComponentDouble(color.components.b) alpha:ToComponentDouble(color.components.a)];
                 strokeThickness = -thickness;
             }
             else 

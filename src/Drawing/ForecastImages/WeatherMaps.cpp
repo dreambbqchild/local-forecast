@@ -130,16 +130,16 @@ public:
                 auto& wx = locationWeatherData.GetWxAtKnownValidIndexes(i, k);
 
                 WxColor c = ColorFromDegrees(wx.temperature);
-                temperatureImg->SetPixel(pt.x, pt.y, c.r, c.g, c.b, c.a);
+                temperatureImg->SetPixel(pt.x, pt.y, c);
 
                 if(wx.type == PrecipitationType::None)
                 {
-                    precipImg->SetPixel(pt.x, pt.y, 0, 0, 0, 0);
+                    precipImg->SetPixel(pt.x, pt.y, PredefinedColors::transparent);
                     continue;
                 }
 
                 c = ColorFromPrecipitation(wx.type, ScaledValueForTypeAndTemp(wx.type, wx.precipitationRate, wx.temperature));
-                precipImg->SetPixel(pt.x, pt.y, c.r, c.g, c.b, c.a);
+                precipImg->SetPixel(pt.x, pt.y, c);
             }
 
             FinishImage("Temperature", forecastIndex, temperatureImg, temperatureFileName);
