@@ -6,6 +6,14 @@ include_directories(src)
 include_directories(/usr/local/include)
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+    set(OpenMP_CXX_FLAG "-Xclang -fopenmp")
+    set(OpenMP_CXX_INCLUDE_DIR /opt/homebrew/opt/libomp/include)
+    set(OpenMP_CXX_LIB_NAMES libomp)
+    set(OpenMP_C_FLAG "-Xclang -fopenmp")
+    set(OpenMP_C_INCLUDE_DIR /opt/homebrew/opt/libomp/include)
+    set(OpenMP_C_LIB_NAMES libomp)
+    set(OpenMP_libomp_LIBRARY /opt/homebrew/opt/libomp/lib/libomp.dylib)
+
     include_directories(/opt/homebrew/include)
 
     link_directories(/opt/homebrew/lib)
