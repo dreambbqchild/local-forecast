@@ -63,23 +63,39 @@ private:
     unique_ptr<LocationWeatherData> locationWeatherData;
     GeographicCalcs geoCalcs;
 
-    void ProcessGribData(const ForecastData& data)
+    void ProcessGribData(const ForecastData& data, RenderTargets renderTargets, bool useCache)
     {
         this->weatherModel = data.weatherModel;
 
         locationWeatherData = unique_ptr<LocationWeatherData>(new LocationWeatherData(data.maxGribIndex));
-        GribProcessor processor(data.gribFileTemplate, data.weatherModel, system_clock::from_time_t(data.forecastStart), data.maxGribIndex, geoCalcs, data.skipToGribNumber);
-        processor.Process(root, *locationWeatherData);
 
-        cout << "Saving forecast.json..." << endl;
-        Json::StreamWriterBuilder builder;
-        builder["indentation"] = "";
-        const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());    
+        auto forecastJsonPath = fs::path(forecastFilePath) / string("forecast.json");
 
-        fstream forecastJson;
-        forecastJson.open(fs::path(forecastFilePath) / string("forecast.json"), fstream::out | fstream::trunc);
-        writer->write(root, &forecastJson);
-        forecastJson.close();
+        if(!useCache || (renderTargets & RenderTargets::WeatherMapsRenderTarget))
+        {
+            GribProcessor processor(data.gribFileTemplate, data.weatherModel, system_clock::from_time_t(data.forecastStart), data.maxGribIndex, geoCalcs, data.skipToGribNumber);
+            processor.Process(root, *locationWeatherData);
+
+            cout << "Saving forecast.json..." << endl;
+            Json::StreamWriterBuilder builder;
+            builder["indentation"] = "";
+            const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());    
+
+            fstream forecastJson;
+            forecastJson.open(forecastJsonPath, fstream::out | fstream::trunc);
+            writer->write(root, &forecastJson);
+            forecastJson.close();
+        }
+        else
+        {
+            ifstream forecastJson;
+            forecastJson.open(forecastJsonPath);
+            forecastJson >> root;
+            forecastJson.close();
+        }
+
+        auto now = system_clock::now();
+        root["now"] = Json::Value::Int64(system_clock::to_time_t(now));
     }
 
     void RenderForecastAssets(RenderTargets renderTargets)
@@ -179,21 +195,21 @@ public:
         weatherModel(WeatherModel::HRRR), //Only to initalize. Is set in Process Grib data becasue it could come from the cache, or as a caller set parameter.
         geoCalcs(toplat, leftlon, bottomlat, rightlon) {}
 
-    void ProcessCachedGribData() 
+    void ProcessCachedGribData(RenderTargets renderTargets)
     {
         GribDownloader downloader(gribFilePath);
         ForecastData data = ForecastDataFromDownloader(downloader);
 
-        ProcessGribData(data); 
+        ProcessGribData(data, renderTargets, true); 
     }
 
-    void ProcessGribData(WeatherModel weatherModel, uint16_t skipToGribNumber, uint16_t maxGribIndex) 
+    void ProcessGribData(WeatherModel weatherModel, RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex) 
     {
         GribDownloader downloader(gribFilePath, weatherModel, maxGribIndex, skipToGribNumber);
         downloader.Download();
         ForecastData data = ForecastDataFromDownloader(downloader);
 
-        ProcessGribData(data); 
+        ProcessGribData(data, renderTargets, false); 
     }
 
     void Run(RenderTargets renderTargets)
@@ -226,14 +242,14 @@ extern "C"
     void LocalForecastLibRenderLocalForecast(enum WxModel wxModel, const char* gribFilePath, const char* forecastFilePath, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex)
     {
         LocalForecastRunner runner(gribFilePath, forecastFilePath);
-        runner.ProcessGribData((WeatherModel)wxModel, skipToGribNumber, maxGribIndex);
+        runner.ProcessGribData((WeatherModel)wxModel, renderTargets, skipToGribNumber, maxGribIndex);
         runner.Run(renderTargets);
     }
 
     void LocalForecastLibRenderCahcedLocalForecast(const char* gribFilePath, const char* forecastFilePath, enum RenderTargets renderTargets)
     {
         LocalForecastRunner runner(gribFilePath, forecastFilePath);
-        runner.ProcessCachedGribData();
+        runner.ProcessCachedGribData(renderTargets);
         runner.Run(renderTargets);
     }
 }

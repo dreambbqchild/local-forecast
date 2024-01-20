@@ -117,20 +117,21 @@ private:
         }
 
         stringstream result;
-        result << moonEmoji << " Today the moon will be in the " << moonPhase << "phase "<< endl
+        result << moonEmoji << " Today the moon will be in the " << moonPhase << " phase "<< endl
             << endl
             << "Between now and " << lastDate << ":" << endl
             << "● " << JoinNames(highNames) << " can expect the highest high of " << extremes.high << "ºF." << Snide(R"( (Going to have to turn on the AC))", extremes.high <= 0) << endl
             << "● " << JoinNames(lowNames) << " should see the lowest low of " << extremes.low << "ºF." << Snide(R"( (Yeah. That's a real "Low" there eh?))", extremes.low >= 70) << endl
             << "● " << JoinNames(windNames) << " " << SingularPlural(windNames.size(), "has", "have") << " the best chance to experience the highest sustained wind at " << extremes.wind << "mph." << Snide(R"( (All together now: "It's WIMDY!"))", extremes.wind >= 30) << endl;
         
+        result << endl;
         if(!TestDouble(extremes.iceTotal) && !TestDouble(extremes.snowTotal) && !TestDouble(extremes.rainTotal))
         {
             result << "● No one is expected to see any precipitation.";
             return result.str();
         }
 
-        result << endl << "Precipitation:" << endl;
+        result << "Precipitation:" << endl;
         AppendHRRRModelTextIce(result, extremes);
         AppendHRRRModelTextSnow(result, extremes);
         AppendHRRRModelTextRain(result, extremes);

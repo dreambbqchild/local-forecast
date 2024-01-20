@@ -194,9 +194,6 @@ public:
         auto pointSet = unique_ptr<IGeoPointSet>(AllocGeoPointSet(locationWeatherData.GetGeoCoords(), parent->geoCalcs));        
         cout << "Compiling JSON..." << endl;
 
-        auto now = system_clock::now();
-        root["now"] = Json::Value::Int64(system_clock::to_time_t(now));
-
         {
             Json::Value forecastSuffixes;
             auto forecastIndex = 0;
