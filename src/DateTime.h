@@ -15,6 +15,9 @@ inline int32_t GetHourFromTime(time_t t) {return (t / secondsInHour) % 24;}
 extern tm ToLocalTm(std::chrono::system_clock::time_point timePoint);
 extern tm ToUTCTm(std::chrono::system_clock::time_point timePoint);
 
+extern std::string GetShortDayOfWeek(std::chrono::system_clock::time_point timePoint);
+inline std::string GetShortDayOfWeek(time_t time){ return GetShortDayOfWeek(std::chrono::system_clock::from_time_t(time)); }
+
 extern std::string GetShortDateTime(std::chrono::system_clock::time_point timePoint);
 inline std::string GetShortDateTime(time_t time){ return GetShortDateTime(std::chrono::system_clock::from_time_t(time)); }
 

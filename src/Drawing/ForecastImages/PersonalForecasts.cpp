@@ -103,7 +103,7 @@ void LayoutColumns(unique_ptr<IDrawService>& draw, double xOffset, vector<DayLab
     for(auto x : columnXs)
     {
         auto top = 0.0;
-        for(auto dayLabel : dayLabels)
+        for(auto& dayLabel : dayLabels)
         {
             draw->MoveTo({x, top});
             draw->LineTo({x, dayLabel.bounds.origin.y});
@@ -139,7 +139,7 @@ void LayoutColumns(unique_ptr<IDrawService>& draw, double xOffset, vector<DayLab
     draw->SetStrokeColor(white);
     draw->StrokeActivePath(2.0);
 
-    for(auto dayLabel : dayLabels)
+    for(auto& dayLabel : dayLabels)
     {
         draw->DrawText([&](IDrawTextContext* textContext)
         {
@@ -237,7 +237,7 @@ DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawServi
             {
                 forecastDate = currentDate;
                 GetSunriseSunset(location["sun"], forecastDate, sunrise, sunset);
-                dayLabels.push_back({ forecastDate, {xOffset, TABLE_TOP + forecastTableSize.height, areaWidth, ROW_HEIGHT }});
+                dayLabels.push_back({ GetShortDayOfWeek(forecastTime) + " " + forecastDate, {xOffset, TABLE_TOP + forecastTableSize.height, areaWidth, ROW_HEIGHT }});
                 forecastTableSize.height += ROW_HEIGHT;
             }                
 
@@ -349,6 +349,7 @@ void RenderSummaryImageForLocation(unique_ptr<IDrawService>& draw, const Summary
 
     auto AddSummaryLine = [&](string text, double fontSize = FONT_SIZE, DSColor color = white) { bounds.origin.y += draw->DrawText(RenderCenteredSummaryLine(text, bounds, fontSize, color)).size.height; };
 
+    AddSummaryLine(GetShortDayOfWeek(now));
     AddSummaryLine(GetShortDate(now));
     AddSummaryLine(summaryData.locationName);
 

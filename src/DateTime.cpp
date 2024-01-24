@@ -34,6 +34,10 @@ string StringifyDate(const char* formatString, std::chrono::system_clock::time_p
     return result;
 }
 
+string GetShortDayOfWeek(std::chrono::system_clock::time_point timePoint) {
+    return StringifyDate("%a", timePoint);
+}
+
 string GetShortDateTime(std::chrono::system_clock::time_point timePoint)
 {
     return StringifyDate("%b %d %-I %p", timePoint);
