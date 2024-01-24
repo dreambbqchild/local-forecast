@@ -9,8 +9,6 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-static string forecastmp4 = "forecast.mp4";
-
 class StillImageEncoder : public IEncoder
 {
 private:
@@ -20,7 +18,7 @@ private:
 
 public:
     StillImageEncoder(fs::path path, int64_t bitRate, int32_t width, int32_t height, FPS baseFps)
-        : outContainer(path / forecastmp4)
+        : outContainer(path)
     {      
          if(!outContainer.IsVideoSupported())
              ERR_OUT("Video not supported in " << outContainer.GetFileName());

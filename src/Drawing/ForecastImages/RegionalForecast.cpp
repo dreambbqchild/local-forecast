@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include <chrono>
-#include <filesystem>
 #include <fstream>
 
 using namespace std;
@@ -331,33 +330,34 @@ size_t DownloadToStream(const void *data, size_t size, size_t nmemb, void *pDown
     return bytesProcessed;
 }
 
-Json::Value RegionalForecast::LoadForecast(const char* cacheFile)
+Json::Value RegionalForecast::LoadForecast(const SelectedLocation& selectedLocation, const fs::path& pathToJson)
 {
     Json::Value forecastRoot;
     auto appid = getenv("OPENWEATHERMAP_APPID");
 
     if(!appid)
     {
-        cout << "Returning data cached in " << cacheFile << endl;
-        if(!fs::exists(cacheFile))
-            ERR_OUT(cacheFile << " not found. Nor was the OPENWEATHERMAP_APPID environment variable set. Exiting.")
+        cout << "Returning data cached in " << pathToJson << endl;
+        if(!fs::exists(pathToJson))
+            ERR_OUT(pathToJson << " not found. Nor was the OPENWEATHERMAP_APPID environment variable set. Exiting.")
 
         ifstream inStream;
-        inStream.open(cacheFile);
+        inStream.open(pathToJson);
         inStream >> forecastRoot;
         return forecastRoot;
     }
 
-    cout << "Updating cache to " << cacheFile << endl;
+    cout << "Updating cache to " << pathToJson << endl;
 
     long httpCode = 0;
     stringstream buffer;
     ofstream outStream;
-    outStream.open (cacheFile, ofstream::out | ofstream::trunc);
+    outStream.open (pathToJson, ofstream::out | ofstream::trunc);
 
     DownloadStreams streams = { &buffer, &outStream };
 
-    auto url = string("https://api.openweathermap.org/data/2.5/onecall?lat=44.8275000&lon=-93.4585833&appid=") + appid;
+    auto regionalCoord = selectedLocation.GetRegionalCoord();
+    auto url = string("https://api.openweathermap.org/data/2.5/onecall?lat=" + to_string(regionalCoord.lat) + "&lon=" + to_string(regionalCoord.lon) + "&appid=") + appid;
     HttpClient::Get(url.c_str(), DownloadToStream, &streams);
 
     outStream.close();
@@ -512,10 +512,10 @@ double RegionalForecast::DrawForecastBoxes(IDrawService* draw, double top, Forec
     return bottom;
 }
 
-void RegionalForecast::Render(const char* cacheFile)
+void RegionalForecast::Render(const SelectedLocation& selectedLocation, const fs::path& pathToJson, const fs::path& pathToPng)
 {
     ForecastItems forecastItems = {0};
-    auto forecastRoot = LoadForecast(cacheFile);
+    auto forecastRoot = LoadForecast(selectedLocation, pathToJson);
     FindForecastItems(forecastRoot, forecastItems);
 
     auto draw = unique_ptr<IDrawService>(AllocDrawService(totalWidth, totalHeight));
@@ -546,5 +546,5 @@ void RegionalForecast::Render(const char* cacheFile)
     draw->SetStrokeColor(white);
     draw->StrokeActivePath(2.0);
 
-    draw->Save("forecasts/openweather.png");
+    draw->Save(pathToPng);
 }

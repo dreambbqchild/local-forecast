@@ -4,7 +4,6 @@
 #include "Characters.h"
 #include "DateTime.h"
 #include "GribProcessor.h"
-#include "Locations.h"
 #include "NumberFormat.h"
 
 #include <omp.h>
@@ -60,6 +59,7 @@ class GribProcessor::ParallelProcessor
 private:
     GribProcessor* parent;
     LocationWeatherData& locationWeatherData;
+    SelectedLocation& selectedLocation;
     
     vector<system_clock::time_point> localForecastTimes;
     
@@ -69,8 +69,8 @@ private:
     Json::Value jLunarPhase;
 
 public:
-    ParallelProcessor(GribProcessor* parent, LocationWeatherData& locationWeatherData)
-        :parent(parent), locationWeatherData(locationWeatherData) {}
+    ParallelProcessor(GribProcessor* parent, LocationWeatherData& locationWeatherData, SelectedLocation& selectedLocation)
+        :parent(parent), locationWeatherData(locationWeatherData), selectedLocation(selectedLocation) {}
 
     void Initalize()
     {
@@ -207,19 +207,19 @@ public:
         }
 
         #pragma omp parallel for
-        for(auto loc = 0; loc < locationsLength; loc++)
+        for(auto& location : selectedLocation.GetAllLocations())
         {
             DetailedGeoCoord nearPoints[4] = {0};        
             Json::Value jLocation, jCoords, jWx, jSunriseSunset, dewpoint, precipitationRate, precipitationType, gust, lightning, newPrecipitation, pressure, temperature, totalCloudCover, totalPrecipitation, totalSnow, visibility, windDirection, windSpeed;
             Wx lastResult = {};
                     
-            auto homeCoords = parent->geoCalcs.FindXY(locations[loc].lat, locations[loc].lon);
+            auto homeCoords = parent->geoCalcs.FindXY({location.lat, location.lon});
             jCoords["x"] = static_cast<uint16_t>(round(homeCoords.x)); 
             jCoords["y"] = static_cast<uint16_t>(round(homeCoords.y));
-            jCoords["lat"] = locations[loc].lat;
-            jCoords["lon"] = locations[loc].lon;
+            jCoords["lat"] = location.lat;
+            jCoords["lon"] = location.lon;
 
-            pointSet->GetBoundingBox(loc, locationWeatherData.GetPointsPerRow(), nearPoints);
+            pointSet->GetBoundingBox(location, locationWeatherData.GetPointsPerRow(), nearPoints);
 
             for(auto i : locationWeatherData.GetValidFieldDataIndexes())
             {
@@ -230,8 +230,8 @@ public:
                 {
                     Json::Value jRiseSetValues;
                     #pragma omp critical
-                    cout << "Adding Sunrise/Sunset info for " << locations[loc].name << " on " << GetShortDate(forecastTime) << endl;
-                    auto sunriseSunset = Astronomy::GetSunRiseSunset(locations[loc].lat, locations[loc].lon, forecastTime);
+                    cout << "Adding Sunrise/Sunset info for " << location.name << " on " << GetShortDate(forecastTime) << endl;
+                    auto sunriseSunset = Astronomy::GetSunRiseSunset(location.lat, location.lon, forecastTime);
                     jRiseSetValues["rise"] = Json::Value::Int64(system_clock::to_time_t(sunriseSunset.rise));
                     jRiseSetValues["set"] = Json::Value::Int64(system_clock::to_time_t(sunriseSunset.set));
 
@@ -319,10 +319,10 @@ public:
             jLocation["coords"] = jCoords;
             jLocation["sun"] = jSunriseSunset;
             jLocation["wx"] = jWx;
-            jLocation["isCity"] = locations[loc].isCity;
+            jLocation["isCity"] = location.isCity;
 
             #pragma omp critical
-            jLocations[locations[loc].name] = jLocation;
+            jLocations[location.name] = jLocation;
         }
         root["locations"] = jLocations;
         root["moon"] = jLunarPhase;
@@ -338,9 +338,9 @@ GribProcessor::GribProcessor(string gribPathTemplate, WeatherModel wxModel, std:
     skipToGribNumber(skipToGribNumber), 
     geoCalcs(geoCalcs) {}
 
-void GribProcessor::Process(Json::Value& root, LocationWeatherData& locationWeatherData)
+void GribProcessor::Process(Json::Value& root, LocationWeatherData& locationWeatherData, SelectedLocation& selectedLocation)
 {    
-    ParallelProcessor processor(this, locationWeatherData);
+    ParallelProcessor processor(this, locationWeatherData, selectedLocation);
     processor.Initalize();
     processor.CollectData();
     processor.GenerateForecastJson(root);

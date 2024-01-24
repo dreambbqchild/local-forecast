@@ -16,7 +16,7 @@ enum RenderTargets {
 enum WxModel{ HRRRWxModel, GFSWxModel };
 
 void LocalForecastLibInit();
-void LocalForecastLibRenderRegionalForecast();
-void LocalForecastLibRenderLocalForecast(enum WxModel wxModel, const char* gribFilePath, const char* forecastFilePath, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex);
-void LocalForecastLibRenderCahcedLocalForecast(const char* gribFilePath, const char* forecastFilePath, enum RenderTargets renderTargets);
+void LocalForecastLibRenderRegionalForecast(const char* locationKey, char** pathToPngBuffer);
+void LocalForecastLibRenderLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex, char** pathToVideoBuffer);
+void LocalForecastLibRenderCahcedLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, char** pathToVideoBuffer);
 #endif

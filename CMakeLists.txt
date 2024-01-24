@@ -24,6 +24,7 @@ link_directories(/usr/local/lib)
 add_library(localforecast SHARED
     src/Astronomy/Astronomy.cpp    
     src/Data/ForecastJsonExtension.cpp
+    src/Data/SelectedLocation.cpp
     src/Data/StringCache.cpp
     src/DateTime.cpp 
     src/Drawing/DrawService.cpp 
@@ -40,7 +41,6 @@ add_library(localforecast SHARED
     src/Grib/GribReader.cpp
     src/Grib/LocationWeatherData.cpp
     src/LocalForecastLib.cpp
-    src/Locations.cpp
     src/Text/SummaryForecast.cpp
     src/Video/Encoder.cpp
     src/Video/AudioStream.cpp

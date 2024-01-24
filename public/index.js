@@ -23,7 +23,14 @@ export const view = (data, state) => html`
           const bounds = map.getBounds();
           const ne = bounds.getNorthEast();
           const sw = bounds.getSouthWest();
-          document.getElementById("consts").textContent = 'const double leftlon = ' + sw.lng() + ', rightlon = ' + ne.lng() + ', toplat = ' + ne.lat() + ', bottomlat = ' + sw.lat() + ';';
+          const coords = {
+            topLat: ne.lat(),
+            bottomLat: sw.lat(),
+            leftLon: sw.lng(),
+            rightLon: ne.lng(),
+          };
+
+          document.getElementById("consts").textContent = \`"coords": \${JSON.stringify(coords, null, '\t')}\`;
           
           document.getElementById("plotPoints").textContent = sw.lat() + ',' + ne.lng() + ',#FF0000,marker,topLeft\n' + ne.lat() + ',' + sw.lng() + ',#FF0000,marker,bottomRight';
         }

@@ -99,10 +99,10 @@ void FinishImage(const char* label, int32_t forecastIndex, unique_ptr<IMapOverla
 }
 
 public:
-    WeatherMaps(Json::Value& root, LocationWeatherData& locationWeatherData, GeographicCalcs& geoCalcs)
+    WeatherMaps(Json::Value& root, LocationWeatherData& locationWeatherData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
         : root(root), locationWeatherData(locationWeatherData), geoCalcs(geoCalcs)
     {
-        mapBackground = shared_ptr<IImage>(AllocImage(fs::path("media") / string("images") / string("basemap.png")));
+        mapBackground = shared_ptr<IImage>(AllocImage(fs::path("media") / string("images") / mapBackgroundFile));
     }
 
    void GenerateForecastMaps(fs::path forecastDataOutputDir)
@@ -126,7 +126,7 @@ public:
             for(auto k = 0; k < locationWeatherData.GetGeoCoordsLength(); k++)
             {
                 auto& coords = locationWeatherData.GetGeoCoordAtKnownValidIndexes(k);
-                auto pt = geoCalcs.FindXY(coords.lat, coords.lon);
+                auto pt = geoCalcs.FindXY(coords);
                 auto& wx = locationWeatherData.GetWxAtKnownValidIndexes(i, k);
 
                 WxColor c = ColorFromDegrees(wx.temperature);
@@ -150,7 +150,7 @@ public:
     virtual ~WeatherMaps() = default;
 };
 
-IWeatherMaps* AllocWeatherMaps(Json::Value& root, LocationWeatherData& locationWeatherData, GeographicCalcs& geoCalcs)
+IWeatherMaps* AllocWeatherMaps(Json::Value& root, LocationWeatherData& locationWeatherData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
 {
-    return new WeatherMaps(root, locationWeatherData, geoCalcs);
+    return new WeatherMaps(root, locationWeatherData, geoCalcs, mapBackgroundFile);
 }

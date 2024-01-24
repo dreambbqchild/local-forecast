@@ -1,5 +1,4 @@
 #include "Geo.h"
-#include "Locations.h"
 
 #include <GeographicLib/Geodesic.hpp>
 #include <GeographicLib/GeodesicLine.hpp>
@@ -35,24 +34,25 @@ inline void ForwardInternal(double lat, double lon, double& x, double& y)
     UTMUPS::Forward(lat, lon, zone, isNorthernHemisphere, x, y);
 }
 
-GeographicCalcs::GeographicCalcs(double toplat, double leftlon, double bottomlat, double rightlon) 
+GeographicCalcs::GeographicCalcs(const SelectedLocation& selectedLocation) 
 {
-    auto metersWidth = CalcDistanceInMetersBetweenCoords({toplat, leftlon}, {toplat, rightlon});
-    auto metersHeight = CalcDistanceInMetersBetweenCoords({toplat, leftlon}, {bottomlat, leftlon});
+    auto& bounds = selectedLocation.GetGeoBounds();
+    auto metersWidth = CalcDistanceInMetersBetweenCoords({bounds.topLat, bounds.leftLon}, {bounds.topLat, bounds.rightLon});
+    auto metersHeight = CalcDistanceInMetersBetweenCoords({bounds.topLat, bounds.leftLon}, {bounds.bottomLat, bounds.leftLon});
     imageWidth = static_cast<int16_t>(ceil((metersWidth / metersHeight) * imageHeight));
 
-    ForwardInternal(toplat, leftlon, leftX, topY);
-    ForwardInternal(bottomlat, rightlon, rightX, bottomY);
+    ForwardInternal(bounds.topLat, bounds.leftLon, leftX, topY);
+    ForwardInternal(bounds.bottomLat, bounds.rightLon, rightX, bottomY);
     width = rightX - leftX;
     height = topY - bottomY;
     xScale = imageWidth / width;
     yScale = imageHeight / height;
 }
 
-DoublePoint GeographicCalcs::FindXY(double lat, double lon)
+DoublePoint GeographicCalcs::FindXY(const GeoCoord& coords)
 {
     DoublePoint pt = {0};
-    ForwardInternal(lat, lon, pt.x, pt.y);
+    ForwardInternal(coords.lat, coords.lon, pt.x, pt.y);
     pt.x = pt.x - leftX;
     pt.y = pt.y - bottomY;
     pt.y = height - pt.y; //Remember: inverted because bigger values are more north.
@@ -76,16 +76,19 @@ public:
         pointSet.Initialize(geoCoords, distanceFunctor);        
     }
 
-    void GetBoundingBox(uint32_t loc, uint32_t pointsPerRow, DetailedGeoCoord resultIndexes[4])
+    void GetBoundingBox(const Location& location, uint32_t pointsPerRow, DetailedGeoCoord resultIndexes[4])
     {
         vector<int32_t> indexes;
         vector<DetailedGeoCoord> nearPoints;
-        GeoCoord geoPt = { locations[loc].lat, locations[loc].lon };
+        GeoCoord geoPt = {location.lat, location.lon};
+        if(geoPt.lon < 0)
+            geoPt.lon += 360;
+
         pointSet.Search(geoCoords, distanceFunctor, geoPt, indexes, 4);
         for(auto &i : indexes)
         {
             auto geoCoord = geoCoords[i];
-            auto pt = geoCalcs.FindXY(geoCoord.lat, geoCoord.lon);
+            auto pt = geoCalcs.FindXY(geoCoord);
             nearPoints.push_back(DetailedGeoCoord {
                 {   //GeoCoord Part
                     .lat = geoCoord.lat, 

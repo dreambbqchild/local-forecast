@@ -34,7 +34,7 @@ void GetSunriseSunset(Json::Value& sun, std::string& forecastDate, system_clock:
     sunset = system_clock::from_time_t(sunsetTime);
 }
 
-void GetSortedHomeLocationsFrom(Json::Value& root, vector<Json::Value>& locations)
+void GetSortedPlaceLocationsFrom(Json::Value& root, vector<Json::Value>& locations)
 {
     int32_t index = 0;
     for(auto itr = root["locations"].begin(); itr != root["locations"].end(); itr++)

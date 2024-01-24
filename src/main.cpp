@@ -14,8 +14,8 @@ using namespace std;
 struct Options {
     bool useCache;
     RenderTargets renderTargets;
+    string locationKey;
     WxModel wxModel;
-    string gribFilePath, forecastPath;
     uint16_t maxGribIndex, skipToGribNumber;
 };
 
@@ -34,10 +34,8 @@ Options GetOptionsFromArgs(int argc, const char* argv[])
 {
     Options opts = {
         .useCache = false, 
-        .renderTargets = RenderTargets::AllRenderTargets, 
+        .renderTargets = RenderTargets::AllRenderTargets,
         .wxModel = WxModel::HRRRWxModel, 
-        .gribFilePath = "./data/hrrr", 
-        .forecastPath ="./forecasts/hrrr", 
         .maxGribIndex = 48, 
         .skipToGribNumber = 1
     };
@@ -69,10 +67,8 @@ Options GetOptionsFromArgs(int argc, const char* argv[])
                 exit(1);
             }
         }
-        else if(OptIs("-gribFilePath") && NextI())
-            opts.gribFilePath = argv[++i];
-        else if(OptIs("-forecastPath") && NextI())
-            opts.forecastPath = argv[++i];
+        else if(OptIs("-locationKey") && NextI())
+            opts.locationKey = argv[++i];
         else if(OptIs("-maxGribIndex") && NextI())
             opts.maxGribIndex = static_cast<uint16_t>(atoi(argv[++i]));
         else if(OptIs("-skipToGribNumber") && NextI())
@@ -86,13 +82,16 @@ Options GetOptionsFromArgs(int argc, const char* argv[])
 int main(int argc, const char* argv[])
 {   
     LocalForecastLibInit();    
-    Options opts = GetOptionsFromArgs(argc, argv);    
-    
-    if(opts.useCache)
-        LocalForecastLibRenderCahcedLocalForecast(opts.gribFilePath.c_str(), opts.forecastPath.c_str(), opts.renderTargets);
-    else
-        LocalForecastLibRenderLocalForecast(opts.wxModel, opts.gribFilePath.c_str(), opts.forecastPath.c_str(), opts.renderTargets, opts.skipToGribNumber, opts.maxGribIndex);
+    Options opts = GetOptionsFromArgs(argc, argv);
+    char* outFile = nullptr;
 
-    cout << "Done!" << endl;
+    if(opts.useCache)
+        LocalForecastLibRenderCahcedLocalForecast(opts.locationKey.c_str(), opts.wxModel, opts.renderTargets, &outFile);
+    else
+        LocalForecastLibRenderLocalForecast(opts.locationKey.c_str(), opts.wxModel, opts.renderTargets, opts.skipToGribNumber, opts.maxGribIndex, &outFile);
+
+    cout << "Done! Rendered to " << outFile << endl;
+    free(outFile);
+    
     return 0;
 }

@@ -3,7 +3,6 @@
 #include "Data/ForecastJsonExtension.h"
 #include "DateTime.h"
 #include "Drawing/WxColors.h"
-#include "Locations.h"
 #include "NumberFormat.h"
 #include "StringExtension.h"
 
@@ -394,7 +393,7 @@ void PersonalForecasts::RenderAll(fs::path forecastDataOutputDir, int32_t maxRow
     auto now = system_clock::from_time_t(root["now"].asInt64());
     uint32_t imageHeight = INT16_MAX;
 
-    GetSortedHomeLocationsFrom(root, locations);
+    GetSortedPlaceLocationsFrom(root, locations);
 
     summaryDatum.resize(locations.size());
 

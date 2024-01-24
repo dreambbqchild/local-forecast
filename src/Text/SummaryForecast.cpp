@@ -1,7 +1,6 @@
 #include "Calcs.h"
 #include "Data/ForecastJsonExtension.h"
 #include "DateTime.h"
-#include "Locations.h"
 #include "StringExtension.h"
 #include "SummaryForecast.h"
 
@@ -138,6 +137,21 @@ private:
         return result.str();
     }
 
+    size_t CountPlaceLocations(Json::Value& root)
+    {
+        size_t placeLocationCount = 0;
+
+        for(auto& location : root["locations"])
+        {
+            if(location["isCity"].asBool())
+                continue;
+
+            placeLocationCount++;
+        }
+
+        return placeLocationCount;
+    }
+
 public:
     void Render(fs::path forecastDataOutputDir, Json::Value& root, int32_t maxRows)
     {
@@ -145,9 +159,9 @@ public:
         auto index = 0;
         vector<SummaryData> summaryDatum;
         auto now = system_clock::from_time_t(root["now"].asInt64());
-        auto peopleCount = CountPeopleLocations(locations, locationsLength);
+        size_t placeLocationCount = CountPlaceLocations(root);
         
-        summaryDatum.resize(static_cast<size_t>(peopleCount));
+        summaryDatum.resize(static_cast<size_t>(placeLocationCount));
 
         for(auto itr = root["locations"].begin(); itr != root["locations"].end(); itr++)
         {

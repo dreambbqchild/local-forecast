@@ -1,4 +1,5 @@
 #include "DateTime.h"
+#include "Error.h"
 #include "Geography/Geo.h"
 #include "GribDownloader.h"
 #include "HttpClient.h"
@@ -48,7 +49,7 @@ string GetFilePathTemplate(string outputDirectory, WeatherModel weatherModel)
     return "";
 }
 
-string GetUrlForWeatherModel(WeatherModel weatherModel, int32_t hour, int32_t forecastIndex, const char* timeStamp)
+string GetUrlForWeatherModel(const GeoBounds& geoBounds, WeatherModel weatherModel, int32_t hour, int32_t forecastIndex, const char* timeStamp)
 {
     stringstream urlStream;
     urlStream.precision(6);
@@ -58,18 +59,18 @@ string GetUrlForWeatherModel(WeatherModel weatherModel, int32_t hour, int32_t fo
             setfill('0') << setw(2) << hour <<
             "z.wrfsfcf" <<
             setfill('0') << setw(2) << forecastIndex <<
-            ".grib2&all_lev=on&all_var=on&subregion=&leftlon=" << fixed << leftlon << 
-            "&rightlon="  << rightlon << 
-            "&toplat=" << toplat <<
-            "&bottomlat=" << bottomlat << 
+            ".grib2&all_lev=on&all_var=on&subregion=&leftlon=" << fixed << geoBounds.leftLon << 
+            "&rightlon="  << geoBounds.rightLon << 
+            "&toplat=" << geoBounds.topLat <<
+            "&bottomlat=" << geoBounds.bottomLat << 
             "&dir=%2Fhrrr." << timeStamp << "%2Fconus";
     }
     else if(weatherModel == WeatherModel::GFS)
     {
-        double gfsLeftlon = leftlon - 0.5,
-               gfsToplat = toplat + 0.5,
-               gfsRightlon = rightlon + 0.5,
-               gfsBottomlat = bottomlat - 0.5;
+        double gfsLeftlon = geoBounds.leftLon - 0.5,
+               gfsToplat = geoBounds.topLat + 0.5,
+               gfsRightlon = geoBounds.rightLon + 0.5,
+               gfsBottomlat = geoBounds.bottomLat - 0.5;
 
         urlStream << "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=gfs.t" <<
             setfill('0') << setw(2) << hour << "z.pgrb2.0p25.f" <<
@@ -90,10 +91,8 @@ void SaveDownloadInfo(string outputDirectory, WeatherModel weatherModel, uint16_
     auto dlInfo = fs::path(outputDirectory) / string("downloadInfo.bin");
     auto f = fopen(dlInfo.c_str(), "wb");
     if(!f)
-    {
-        cerr << "Unable to open " << dlInfo << endl;
-        exit(1);
-    }
+        ERR_OUT("Unable to open " << dlInfo)
+
     SaveData saveData = {forecastStartTime, weatherModel, maxGribIndex, skipToGribNumber};
     fwrite(&saveData, sizeof(SaveData), 1, f);
     fclose(f);
@@ -106,10 +105,8 @@ bool LoadDownloadInfo(fs::path outputDirectory, SaveData& saveData, bool exitOnN
     if(!f)
     {
         if(exitOnNotFound)
-        {
-            cerr << "Could not open " << dlInfo << endl;
-            exit(1);
-        }
+            ERR_OUT("Could not open " << dlInfo)
+        
         return false;
     }
 
@@ -125,8 +122,8 @@ bool LoadDownloadInfo(fs::path outputDirectory, SaveData& saveData, bool exitOnN
     return true;
 }
 
-GribDownloader::GribDownloader(string outputDirectory)
-    : usingCachedMode(true)
+GribDownloader::GribDownloader(const SelectedLocation& selectedLocation, string outputDirectory)
+    : selectedLocation(selectedLocation), usingCachedMode(true)
 {
     SaveData saveData = {0};
     LoadDownloadInfo(outputDirectory, saveData, true);
@@ -135,8 +132,8 @@ GribDownloader::GribDownloader(string outputDirectory)
     filePathTemplate = ::GetFilePathTemplate(outputDirectory, saveData.weatherModel);
 }
 
-GribDownloader::GribDownloader(string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber)
-    :  maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), usingCachedMode(false), weatherModel(weatherModel), forecastStartTime(GetStartTimeForWeatherModelDownload(weatherModel)), outputDirectory(outputDirectory)
+GribDownloader::GribDownloader(const SelectedLocation& selectedLocation, string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber)
+    :  selectedLocation(selectedLocation), maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), usingCachedMode(false), weatherModel(weatherModel), forecastStartTime(GetStartTimeForWeatherModelDownload(weatherModel)), outputDirectory(outputDirectory)
 {
     filePathTemplate = ::GetFilePathTemplate(outputDirectory, weatherModel);
 }
@@ -173,17 +170,20 @@ void GribDownloader::Download()
 
     cout << "Downloading the " << (weatherModel == WeatherModel::GFS ? "GFS" : "HRRR") << " model with timestamp " << timeStamp << " at hour " << forecastStart.tm_hour << "..." << endl;
 
+    auto geoBounds = selectedLocation.GetGeoBounds();
     #pragma omp parallel for num_threads(3)
     for(uint32_t i = skipToGribNumber; i <= maxGribIndex; i++)
     {
         if(weatherModel == WeatherModel::GFS && i > 120 && i % 3 != 0)
             continue;
 
-        auto url = GetUrlForWeatherModel(weatherModel, forecastStart.tm_hour, i, timeStamp);
+        auto url = GetUrlForWeatherModel(geoBounds, weatherModel, forecastStart.tm_hour, i, timeStamp);
         cout << "Thread " << omp_get_thread_num() << ": Downloading " << url << endl;
         char outfilename[FILENAME_MAX] = {0};
         snprintf(outfilename, FILENAME_MAX, filePathTemplate.c_str(), i);
         auto fp = fopen(outfilename, "wb");
+        if(!fp)
+            ERR_OUT("Unable to to open " << outfilename);
 
         HttpClient::Get(url.c_str(), fwrite, fp);
 

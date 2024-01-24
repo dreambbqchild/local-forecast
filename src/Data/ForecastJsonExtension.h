@@ -16,7 +16,7 @@ struct SummaryData {
 void LoadForecastJson(std::filesystem::path forecastPath, Json::Value& root);
 void GetSunriseSunset(Json::Value& sun, std::string& forecastDate, std::chrono::system_clock::time_point& sunrise, std::chrono::system_clock::time_point& sunset);
 void GetSunriseSunset(Json::Value& sun, std::string& forecastDate, tm& sunrise, tm& sunset);
-void GetSortedHomeLocationsFrom(Json::Value& root, std::vector<Json::Value>& locations);
+void GetSortedPlaceLocationsFrom(Json::Value& root, std::vector<Json::Value>& locations);
 int32_t GetForecastsFromNow(Json::Value& root, std::chrono::system_clock::time_point& now, int32_t maxRows, std::function<void (std::chrono::system_clock::time_point&, int32_t)> callback);
 void CollectSummaryDataForLocation(const std::string& locationName, SummaryData& summaryData, Json::Value& root, Json::Value& location, int32_t maxRows);
 
