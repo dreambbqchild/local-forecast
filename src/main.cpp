@@ -83,15 +83,17 @@ int main(int argc, const char* argv[])
 {   
     LocalForecastLibInit();    
     Options opts = GetOptionsFromArgs(argc, argv);
-    char* outFile = nullptr;
+    char* videoOutFile = nullptr, 
+        * textOutFile = nullptr;
 
     if(opts.useCache)
-        LocalForecastLibRenderCahcedLocalForecast(opts.locationKey.c_str(), opts.wxModel, opts.renderTargets, &outFile);
+        LocalForecastLibRenderCahcedLocalForecast(opts.locationKey.c_str(), opts.wxModel, opts.renderTargets, &videoOutFile, &textOutFile);
     else
-        LocalForecastLibRenderLocalForecast(opts.locationKey.c_str(), opts.wxModel, opts.renderTargets, opts.skipToGribNumber, opts.maxGribIndex, &outFile);
+        LocalForecastLibRenderLocalForecast(opts.locationKey.c_str(), opts.wxModel, opts.renderTargets, opts.skipToGribNumber, opts.maxGribIndex, &videoOutFile, &textOutFile);
 
-    cout << "Done! Rendered to " << outFile << endl;
-    free(outFile);
-    
+    cout << "Done! Rendered video to " << videoOutFile << ", and text to " << textOutFile << "." << endl;
+    free(videoOutFile);
+    free(textOutFile);
+
     return 0;
 }

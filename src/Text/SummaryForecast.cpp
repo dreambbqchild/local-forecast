@@ -153,7 +153,7 @@ private:
     }
 
 public:
-    void Render(fs::path forecastDataOutputDir, Json::Value& root, int32_t maxRows)
+    void Render(fs::path textForecastOutputPath, Json::Value& root, int32_t maxRows)
     {
         string lastDate;
         auto index = 0;
@@ -183,7 +183,7 @@ public:
         auto moon = root["moon"][to_string(nowDay)];
         auto textForecast = GetTextSummary(moon["emoji"].asString(), moon["name"].asString(), summaryDatum, lastDate);
         boost::algorithm::trim(textForecast);
-        ofstream outStream(forecastDataOutputDir / string("forecast.txt"));
+        ofstream outStream(textForecastOutputPath);
         outStream << textForecast;
         outStream.close();
     }

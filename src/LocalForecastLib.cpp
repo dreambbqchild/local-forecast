@@ -68,6 +68,7 @@ private:
     fs::path gribFilePath;
     fs::path forecastFilePath;
     fs::path videoFilePath;
+    fs::path textFilePath;
     fs::path pathToRegionalForecastJson;
     fs::path pathToRegionalForecastPng;
 
@@ -136,7 +137,7 @@ private:
         if(HasFlag(TextForecastRenderTarget, renderTargets))
         {
             auto textSummary = unique_ptr<ISummaryForecast>(AllocSummaryForecast());
-            textSummary->Render(forecastFilePath, root);
+            textSummary->Render(textFilePath, root);
         }
     }
 
@@ -213,10 +214,13 @@ public:
         geoCalcs(selectedLocation) 
         {
             videoFilePath = forecastFilePath / string("forecast.mp4");
+            textFilePath = forecastFilePath / string("forecast.txt");
             RenderRegionalForecastPaths(selectedLocation, pathToRegionalForecastJson, pathToRegionalForecastPng);
         }
 
     inline const fs::path& GetVideoFilePath() { return videoFilePath; }
+
+    inline const fs::path& GetTextFilePath() { return textFilePath; }
 
     void ProcessCachedGribData(RenderTargets renderTargets)
     {
@@ -284,24 +288,26 @@ extern "C"
         RenderRegionalForecast(selectedLocation, pathToJson, pathToPng);
     }
 
-    void LocalForecastLibRenderLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex, char** pathToVideoBuffer)
+    void LocalForecastLibRenderLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex, char** pathToVideoBuffer, char** pathToTextBuffer)
     {
         SelectedLocation selectedLocation(locationKey);
         LocalForecastRunner runner((WeatherModel)wxModel, selectedLocation);
 
         HandleBuffer(runner.GetVideoFilePath(), pathToVideoBuffer);
+        HandleBuffer(runner.GetTextFilePath(), pathToTextBuffer);
 
         runner.ProcessGribData(renderTargets, skipToGribNumber, maxGribIndex);
         runner.Run(renderTargets);
 
     }
 
-    void LocalForecastLibRenderCahcedLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, char** pathToVideoBuffer)
+    void LocalForecastLibRenderCahcedLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, char** pathToVideoBuffer, char** pathToTextBuffer)
     {
         SelectedLocation selectedLocation(locationKey);
         LocalForecastRunner runner((WeatherModel)wxModel, selectedLocation);
 
         HandleBuffer(runner.GetVideoFilePath(), pathToVideoBuffer);
+        HandleBuffer(runner.GetTextFilePath(), pathToTextBuffer);
 
         runner.ProcessCachedGribData(renderTargets);
         runner.Run(renderTargets);
