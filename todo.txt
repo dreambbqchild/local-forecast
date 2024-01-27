@@ -1,4 +1,0 @@
-V1.1
-Finish GFS Support
-    Need to take lat/longs and expand them so we get enough data to include the entire image. Remember 0.25 degrees.
-OpenCL?
