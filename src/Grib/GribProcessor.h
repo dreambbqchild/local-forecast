@@ -22,5 +22,5 @@ private:
 
 public:
     GribProcessor(std::string gribPathTemplate, WeatherModel wxModel, std::chrono::system_clock::time_point forecastStartTime, uint16_t maxGribIndex, GeographicCalcs& geoCalcs, uint16_t skipToGribNumber = 0);
-    void Process(Json::Value& root, LocationWeatherData& locationWeatherData, SelectedLocation& selectedLocation);
+    void Process(Json::Value& root, LocationWeatherData& locationWeatherData, SelectedRegion& selectedLocation);
 };

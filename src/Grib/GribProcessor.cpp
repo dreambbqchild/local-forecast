@@ -59,7 +59,7 @@ class GribProcessor::ParallelProcessor
 private:
     GribProcessor* parent;
     LocationWeatherData& locationWeatherData;
-    SelectedLocation& selectedLocation;
+    SelectedRegion& selectedLocation;
     
     vector<system_clock::time_point> localForecastTimes;
     
@@ -69,7 +69,7 @@ private:
     Json::Value jLunarPhase;
 
 public:
-    ParallelProcessor(GribProcessor* parent, LocationWeatherData& locationWeatherData, SelectedLocation& selectedLocation)
+    ParallelProcessor(GribProcessor* parent, LocationWeatherData& locationWeatherData, SelectedRegion& selectedLocation)
         :parent(parent), locationWeatherData(locationWeatherData), selectedLocation(selectedLocation) {}
 
     void Initalize()
@@ -338,7 +338,7 @@ GribProcessor::GribProcessor(string gribPathTemplate, WeatherModel wxModel, std:
     skipToGribNumber(skipToGribNumber), 
     geoCalcs(geoCalcs) {}
 
-void GribProcessor::Process(Json::Value& root, LocationWeatherData& locationWeatherData, SelectedLocation& selectedLocation)
+void GribProcessor::Process(Json::Value& root, LocationWeatherData& locationWeatherData, SelectedRegion& selectedLocation)
 {    
     ParallelProcessor processor(this, locationWeatherData, selectedLocation);
     processor.Initalize();

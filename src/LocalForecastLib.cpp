@@ -36,14 +36,14 @@ struct ForecastData {
 
 #define HasFlag(f, t) ((f & t) == f)
 
-void RenderRegionalForecastPaths(const SelectedLocation& selectedLocation, fs::path& pathToJson, fs::path& pathToPng)
+void RenderRegionalForecastPaths(const SelectedRegion& selectedLocation, fs::path& pathToJson, fs::path& pathToPng)
 {
     fs::path openweatherPath = fs::path("forecasts") / selectedLocation.GetOutputFolder();
     pathToJson = openweatherPath / string("openweather.json");
     pathToPng = openweatherPath /  string("openweather.png");
 }
 
-void RenderRegionalForecast(const SelectedLocation& selectedLocation, const fs::path& pathToJson, const fs::path& pathToPng)
+void RenderRegionalForecast(const SelectedRegion& selectedLocation, const fs::path& pathToJson, const fs::path& pathToPng)
 {
     RegionalForecast regionalForecast;
     regionalForecast.Render(selectedLocation, pathToJson, pathToPng);
@@ -73,7 +73,7 @@ private:
     fs::path pathToRegionalForecastPng;
 
     unique_ptr<LocationWeatherData> locationWeatherData;
-    SelectedLocation selectedLocation;
+    SelectedRegion selectedLocation;
     GeographicCalcs geoCalcs;
 
     void ProcessGribData(const ForecastData& data, RenderTargets renderTargets, bool useCache)
@@ -206,7 +206,7 @@ private:
     }
 
 public:
-    LocalForecastRunner(WeatherModel weatherModel, const SelectedLocation& selectedLocation) :
+    LocalForecastRunner(WeatherModel weatherModel, const SelectedRegion& selectedLocation) :
         gribFilePath(fs::path("data") / selectedLocation.GetOutputFolder() / WeatherModelToFilePath(weatherModel)),
         forecastFilePath(fs::path("forecasts") / selectedLocation.GetOutputFolder() / WeatherModelToFilePath(weatherModel)),
         weatherModel(weatherModel),
@@ -279,7 +279,7 @@ extern "C"
     void LocalForecastLibRenderRegionalForecast(const char* locationKey, char** pathToPngBuffer) 
     {
         fs::path pathToJson, pathToPng;
-        SelectedLocation selectedLocation(locationKey);
+        SelectedRegion selectedLocation(locationKey);
 
         RenderRegionalForecastPaths(selectedLocation, pathToJson, pathToPng);
 
@@ -290,7 +290,7 @@ extern "C"
 
     void LocalForecastLibRenderLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex, char** pathToVideoBuffer, char** pathToTextBuffer)
     {
-        SelectedLocation selectedLocation(locationKey);
+        SelectedRegion selectedLocation(locationKey);
         LocalForecastRunner runner((WeatherModel)wxModel, selectedLocation);
 
         HandleBuffer(runner.GetVideoFilePath(), pathToVideoBuffer);
@@ -303,7 +303,7 @@ extern "C"
 
     void LocalForecastLibRenderCahcedLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, char** pathToVideoBuffer, char** pathToTextBuffer)
     {
-        SelectedLocation selectedLocation(locationKey);
+        SelectedRegion selectedLocation(locationKey);
         LocalForecastRunner runner((WeatherModel)wxModel, selectedLocation);
 
         HandleBuffer(runner.GetVideoFilePath(), pathToVideoBuffer);

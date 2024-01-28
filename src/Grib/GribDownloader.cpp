@@ -122,7 +122,7 @@ bool LoadDownloadInfo(fs::path outputDirectory, SaveData& saveData, bool exitOnN
     return true;
 }
 
-GribDownloader::GribDownloader(const SelectedLocation& selectedLocation, string outputDirectory)
+GribDownloader::GribDownloader(const SelectedRegion& selectedLocation, string outputDirectory)
     : selectedLocation(selectedLocation), usingCachedMode(true)
 {
     SaveData saveData = {0};
@@ -132,7 +132,7 @@ GribDownloader::GribDownloader(const SelectedLocation& selectedLocation, string 
     filePathTemplate = ::GetFilePathTemplate(outputDirectory, saveData.weatherModel);
 }
 
-GribDownloader::GribDownloader(const SelectedLocation& selectedLocation, string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber)
+GribDownloader::GribDownloader(const SelectedRegion& selectedLocation, string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber)
     :  selectedLocation(selectedLocation), maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), usingCachedMode(false), weatherModel(weatherModel), forecastStartTime(GetStartTimeForWeatherModelDownload(weatherModel)), outputDirectory(outputDirectory)
 {
     filePathTemplate = ::GetFilePathTemplate(outputDirectory, weatherModel);
@@ -170,7 +170,7 @@ void GribDownloader::Download()
 
     cout << "Downloading the " << (weatherModel == WeatherModel::GFS ? "GFS" : "HRRR") << " model with timestamp " << timeStamp << " at hour " << forecastStart.tm_hour << "..." << endl;
 
-    auto geoBounds = selectedLocation.GetGeoBounds();
+    auto geoBounds = selectedLocation.GetRegionBounds();
     #pragma omp parallel for num_threads(3)
     for(uint32_t i = skipToGribNumber; i <= maxGribIndex; i++)
     {

@@ -330,7 +330,7 @@ size_t DownloadToStream(const void *data, size_t size, size_t nmemb, void *pDown
     return bytesProcessed;
 }
 
-Json::Value RegionalForecast::LoadForecast(const SelectedLocation& selectedLocation, const fs::path& pathToJson)
+Json::Value RegionalForecast::LoadForecast(const SelectedRegion& selectedLocation, const fs::path& pathToJson)
 {
     Json::Value forecastRoot;
     auto appid = getenv("OPENWEATHERMAP_APPID");
@@ -512,7 +512,7 @@ double RegionalForecast::DrawForecastBoxes(IDrawService* draw, double top, Forec
     return bottom;
 }
 
-void RegionalForecast::Render(const SelectedLocation& selectedLocation, const fs::path& pathToJson, const fs::path& pathToPng)
+void RegionalForecast::Render(const SelectedRegion& selectedLocation, const fs::path& pathToJson, const fs::path& pathToPng)
 {
     ForecastItems forecastItems = {0};
     auto forecastRoot = LoadForecast(selectedLocation, pathToJson);

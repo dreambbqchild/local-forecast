@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Calcs.h"
-#include "Data/SelectedLocation.h"
+#include "Data/SelectedRegion.h"
 
 #include <vector>
 
@@ -19,7 +19,7 @@ protected:
   double leftX = 0, rightX = 0, topY = 0, bottomY = 0, width = 0, height = 0, xScale = 0, yScale = 0;
   
 public:
-  GeographicCalcs(const SelectedLocation& selectedLocation);
+  GeographicCalcs(const SelectedRegion& selectedLocation);
   Int16Size Bounds() {return {imageWidth, imageHeight}; }
   DoublePoint FindXY(const GeoCoord& coords);
   virtual ~GeographicCalcs() = default;

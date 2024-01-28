@@ -34,9 +34,9 @@ inline void ForwardInternal(double lat, double lon, double& x, double& y)
     UTMUPS::Forward(lat, lon, zone, isNorthernHemisphere, x, y);
 }
 
-GeographicCalcs::GeographicCalcs(const SelectedLocation& selectedLocation) 
+GeographicCalcs::GeographicCalcs(const SelectedRegion& selectedLocation) 
 {
-    auto& bounds = selectedLocation.GetGeoBounds();
+    auto& bounds = selectedLocation.GetRegionBounds();
     auto metersWidth = CalcDistanceInMetersBetweenCoords({bounds.topLat, bounds.leftLon}, {bounds.topLat, bounds.rightLon});
     auto metersHeight = CalcDistanceInMetersBetweenCoords({bounds.topLat, bounds.leftLon}, {bounds.bottomLat, bounds.leftLon});
     imageWidth = static_cast<int16_t>(ceil((metersWidth / metersHeight) * imageHeight));

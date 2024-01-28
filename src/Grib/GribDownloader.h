@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Grib.h"
-#include "Data/SelectedLocation.h"
+#include "Data/SelectedRegion.h"
 
 #include <string>
 
@@ -12,13 +12,13 @@ private:
     WeatherModel weatherModel;
     time_t forecastStartTime;
     std::string filePathTemplate, outputDirectory;
-    const SelectedLocation& selectedLocation;
+    const SelectedRegion& selectedLocation;
 
     void Init(void* vSaveData);
 
 public:
-    GribDownloader(const SelectedLocation& selectedLocation, std::string outputDirectory);
-    GribDownloader(const SelectedLocation& selectedLocation, std::string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber = 0);
+    GribDownloader(const SelectedRegion& selectedLocation, std::string outputDirectory);
+    GribDownloader(const SelectedRegion& selectedLocation, std::string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber = 0);
 
     std::string GetFilePathTemplate() {return filePathTemplate;}
     uint16_t GetMaxGribIndex() {return maxGribIndex;}
