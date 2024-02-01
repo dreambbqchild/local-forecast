@@ -34,9 +34,9 @@ inline void ForwardInternal(double lat, double lon, double& x, double& y)
     UTMUPS::Forward(lat, lon, zone, isNorthernHemisphere, x, y);
 }
 
-GeographicCalcs::GeographicCalcs(const SelectedRegion& selectedLocation) 
+GeographicCalcs::GeographicCalcs(const SelectedRegion& selectedRegion) 
 {
-    auto& bounds = selectedLocation.GetRegionBounds();
+    auto& bounds = selectedRegion.GetRenderableRegionBounds();
     auto metersWidth = CalcDistanceInMetersBetweenCoords({bounds.topLat, bounds.leftLon}, {bounds.topLat, bounds.rightLon});
     auto metersHeight = CalcDistanceInMetersBetweenCoords({bounds.topLat, bounds.leftLon}, {bounds.bottomLat, bounds.leftLon});
     imageWidth = static_cast<int16_t>(ceil((metersWidth / metersHeight) * imageHeight));
@@ -70,16 +70,16 @@ private:
   GeographicCalcs& geoCalcs;
 
 public:
-    GeoPointSet(vector<GeoCoord>& geoCoords, GeographicCalcs& geoCalcs) 
+    GeoPointSet(const vector<GeoCoord>& geoCoords, GeographicCalcs& geoCalcs) 
         : geoCoords(geoCoords), geoCalcs(geoCalcs)
     {
         pointSet.Initialize(geoCoords, distanceFunctor);        
     }
 
-    void GetBoundingBox(const Location& location, uint32_t pointsPerRow, DetailedGeoCoord resultIndexes[4])
+    void GetBoundingBox(const Location& location, GeoCoordPoint resultIndexes[4])
     {
         vector<int32_t> indexes;
-        vector<DetailedGeoCoord> nearPoints;
+        vector<GeoCoordPoint> nearPoints;
         GeoCoord geoPt = {location.lat, location.lon};
         if(geoPt.lon < 0)
             geoPt.lon += 360;
@@ -89,12 +89,11 @@ public:
         {
             auto geoCoord = geoCoords[i];
             auto pt = geoCalcs.FindXY(geoCoord);
-            nearPoints.push_back(DetailedGeoCoord {
+            nearPoints.push_back(GeoCoordPoint {
                 {   //GeoCoord Part
                     .lat = geoCoord.lat, 
                     .lon = geoCoord.lon
                 },
-                .index = static_cast<uint16_t>(i), 
                 .x = pt.x, 
                 .y = pt.y
             });
@@ -120,7 +119,7 @@ public:
     }
 };
 
-IGeoPointSet* AllocGeoPointSet(vector<GeoCoord>& geoCoords, GeographicCalcs& geoCalcs)
+IGeoPointSet* AllocGeoPointSet(const vector<GeoCoord>& geoCoords, GeographicCalcs& geoCalcs)
 {
     return new GeoPointSet(geoCoords, geoCalcs);
 }

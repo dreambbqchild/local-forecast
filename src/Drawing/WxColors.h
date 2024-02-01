@@ -3,8 +3,6 @@
 #include "Drawing/DrawService.h"
 #include <stdint.h>
 
-typedef DSColor WxColor;
-
-WxColor ColorFromDegrees(double farenheight);
-WxColor ColorFromPrecipitation(PrecipitationType precipitationType, double rate);
-WxColor ColorFromWind(double velocity);
+DSColor ColorFromDegrees(double farenheight);
+DSColor ColorFromPrecipitation(PrecipitationType precipitationType, double rate);
+DSColor ColorFromWind(double velocity);

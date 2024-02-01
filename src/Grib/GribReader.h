@@ -1,24 +1,20 @@
 #pragma once
 
+#include "Geography/Geo.h"
+#include "Grib.h"
+#include "GribData.h"
+#include "Wx.h"
+
+#include <chrono>
+#include <json/json.h>
 #include <string>
 #include <vector>
 
-#include "Geography/Geo.h"
-#include "Grib.h"
-
-class GribReader 
+class IGribReader
 {
-private:
-    WeatherModel wxModel;
-    int32_t rows, columns, numberOfValues;
-    std::string fileName;
-    std::vector<GeoCoord> geoCoords;
-
 public:
-    GribReader(std::string fileName, WeatherModel wxModel);
-    bool GetFieldData(std::vector<FieldData>& result);
-    std::vector<GeoCoord> GetGeoCoords(){ return geoCoords; }
-    int32_t GetRows(){return rows;}
-    int32_t GetColumns(){return columns;}
-    int32_t GetNumberOfValues(){return numberOfValues;}
+    virtual void CollectData(Json::Value& root, std::unique_ptr<GribData>& gribData) = 0;
+    virtual ~IGribReader() = default;
 };
+
+IGribReader* AllocGribReader(std::string gribPathTemplate, const SelectedRegion& selectedRegion, WeatherModel wxModel, std::chrono::system_clock::time_point forecastStartTime, uint16_t skipToGribNumber, uint16_t maxGribIndex, GeographicCalcs& geoCalcs);

@@ -36,10 +36,9 @@ add_library(localforecast SHARED
     src/Drawing/ImageCache.cpp
     src/Drawing/WxColors.cpp
     src/Geography/Geo.cpp
+    src/Grib/GribData.cpp
     src/Grib/GribDownloader.cpp
-    src/Grib/GribProcessor.cpp     
     src/Grib/GribReader.cpp
-    src/Grib/LocationWeatherData.cpp
     src/LocalForecastLib.cpp
     src/Text/SummaryForecast.cpp
     src/Video/Encoder.cpp

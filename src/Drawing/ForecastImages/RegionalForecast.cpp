@@ -330,7 +330,7 @@ size_t DownloadToStream(const void *data, size_t size, size_t nmemb, void *pDown
     return bytesProcessed;
 }
 
-Json::Value RegionalForecast::LoadForecast(const SelectedRegion& selectedLocation, const fs::path& pathToJson)
+Json::Value RegionalForecast::LoadForecast(const SelectedRegion& selectedRegion, const fs::path& pathToJson)
 {
     Json::Value forecastRoot;
     auto appid = getenv("OPENWEATHERMAP_APPID");
@@ -356,7 +356,7 @@ Json::Value RegionalForecast::LoadForecast(const SelectedRegion& selectedLocatio
 
     DownloadStreams streams = { &buffer, &outStream };
 
-    auto regionalCoord = selectedLocation.GetRegionalCoord();
+    auto regionalCoord = selectedRegion.GetRegionalCoord();
     auto url = string("https://api.openweathermap.org/data/2.5/onecall?lat=" + to_string(regionalCoord.lat) + "&lon=" + to_string(regionalCoord.lon) + "&appid=") + appid;
     HttpClient::Get(url.c_str(), DownloadToStream, &streams);
 
@@ -405,9 +405,9 @@ function<DSRect(IDrawTextContext*)> RegionalForecast::RenderForecast(IDrawServic
     {
         ForecastForHour* forHour = forecast->isForecastForHour ? static_cast<ForecastForHour*>(forecast) : nullptr;
         ForecastForDay* forDay = !forecast->isForecastForHour ? static_cast<ForecastForDay*>(forecast) : nullptr;
-        WxColor color = {0};
+        DSColor color = {0};
 
-        auto AddTextWithColor = [&](string text, const WxColor& textColor) 
+        auto AddTextWithColor = [&](string text, const DSColor& textColor) 
         {
             textContext->SetTextFillColor(textColor);
             if(ContrastRatio(textColor, discordBg) < 5)
@@ -512,10 +512,10 @@ double RegionalForecast::DrawForecastBoxes(IDrawService* draw, double top, Forec
     return bottom;
 }
 
-void RegionalForecast::Render(const SelectedRegion& selectedLocation, const fs::path& pathToJson, const fs::path& pathToPng)
+void RegionalForecast::Render(const SelectedRegion& selectedRegion, const fs::path& pathToJson, const fs::path& pathToPng)
 {
     ForecastItems forecastItems = {0};
-    auto forecastRoot = LoadForecast(selectedLocation, pathToJson);
+    auto forecastRoot = LoadForecast(selectedRegion, pathToJson);
     FindForecastItems(forecastRoot, forecastItems);
 
     auto draw = unique_ptr<IDrawService>(AllocDrawService(totalWidth, totalHeight));

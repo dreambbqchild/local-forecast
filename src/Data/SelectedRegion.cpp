@@ -7,15 +7,30 @@
 
 using namespace std;
 
-void GetGeoBoundsFromJsonValue(GeoBounds& geoBounds, Json::Value& bounds)
+void GetGeoBoundsFromJsonValue(WeatherModel wxModel, GeoBounds& geoBounds, Json::Value& bounds)
 {
     geoBounds.leftLon = bounds["leftLon"].asDouble();
     geoBounds.rightLon = bounds["rightLon"].asDouble();
     geoBounds.topLat = bounds["topLat"].asDouble();
     geoBounds.bottomLat = bounds["bottomLat"].asDouble();
+
+    if(wxModel == WeatherModel::HRRR)
+    {
+        geoBounds.leftLon -= 0.25,
+        geoBounds.topLat += 0.25,
+        geoBounds.rightLon += 0.25,
+        geoBounds.bottomLat -= 0.25;
+    }
+    else if(wxModel == WeatherModel::GFS)
+    {
+        geoBounds.leftLon -= 0.5,
+        geoBounds.topLat += 0.5,
+        geoBounds.rightLon += 0.5,
+        geoBounds.bottomLat -= 0.5;
+    }
 }
 
-SelectedRegion::SelectedRegion(string key)
+SelectedRegion::SelectedRegion(WeatherModel wxModel, string key)
 {
     Json::Value settings;
 
@@ -30,7 +45,7 @@ SelectedRegion::SelectedRegion(string key)
     for(auto& member : settings)
     {
         GeoBounds currentArea = {0};
-        GetGeoBoundsFromJsonValue(currentArea, member["geoBounds"]);
+        GetGeoBoundsFromJsonValue(wxModel, currentArea, member["geoBounds"]);
         
         forecastAreaBounds.leftLon = min(forecastAreaBounds.leftLon, currentArea.leftLon);
         forecastAreaBounds.rightLon = max(forecastAreaBounds.rightLon, currentArea.rightLon);
@@ -52,7 +67,8 @@ SelectedRegion::SelectedRegion(string key)
     regionalCoord.lat = regionalForecastCoords["lat"].asDouble();
     regionalCoord.lon = regionalForecastCoords["lon"].asDouble();
 
-    GetGeoBoundsFromJsonValue(regionBounds, bounds);
+    GetGeoBoundsFromJsonValue(wxModel, regionBoundsWithOverflow, bounds);
+    GetGeoBoundsFromJsonValue(WeatherModel::NoWeatherModel, renderableRegionBounds, bounds);
 
     for(auto& jLocation : locations)
     {

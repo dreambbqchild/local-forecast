@@ -1,4 +1,5 @@
 #include "Astronomy.h"
+#include "Calcs.h"
 #include "DateTime.h"
 #include <sunset.h>
 #include <stdio.h>
@@ -169,8 +170,6 @@ LunarPhase FullMoonDetails(double lunarAge, year utcYear, month utcMonth, day ut
     
     return {lunarAge, nameBuilder.str(), fullMoon.emoji + string(FULL_EMOJI)};
 }
-
-inline bool IsBetween(double left, double eval, double right) { return eval >= left && eval <= right; }
 
 LunarPhase Astronomy::GetLunarPhase(system_clock::time_point timePoint)
 {

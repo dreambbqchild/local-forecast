@@ -18,7 +18,7 @@ class WeatherMaps : public IWeatherMaps
 {
 private:
     Json::Value& root;
-    LocationWeatherData& locationWeatherData;
+    const unique_ptr<GribData>& gribData;
     fs::path forecastDataOutputDir;
     shared_ptr<IImage> mapBackground;
     GeographicCalcs& geoCalcs;
@@ -36,7 +36,6 @@ void FinishImage(const char* label, int32_t forecastIndex, unique_ptr<IMapOverla
     const int32_t marginOffset = 32;
 
     //Setup the Base Map, the Forecast Overlay, and the location forecasts.
-    mapOverlay->InterpolateFill(locationWeatherData.GetPointsPerRow());
     auto mapSize = mapOverlay->GetSize();
     auto bgSize = mapBackground->GetSize();
     auto locationDrawService = shared_ptr<IDrawService>(AllocDrawService(mapSize.width, mapSize.height));
@@ -99,8 +98,8 @@ void FinishImage(const char* label, int32_t forecastIndex, unique_ptr<IMapOverla
 }
 
 public:
-    WeatherMaps(Json::Value& root, LocationWeatherData& locationWeatherData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
-        : root(root), locationWeatherData(locationWeatherData), geoCalcs(geoCalcs)
+    WeatherMaps(Json::Value& root, const unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
+        : root(root), gribData(gribData), geoCalcs(geoCalcs)
     {
         mapBackground = shared_ptr<IImage>(AllocImage(fs::path("media") / string("images") / mapBackgroundFile));
     }
@@ -114,32 +113,44 @@ public:
         auto overlayBounds = geoCalcs.Bounds();
 
         #pragma omp parallel for
-        for(auto i : locationWeatherData.GetValidFieldDataIndexes())
+        for(auto forecastIndex = 0; forecastIndex < gribData->GetNumberOfFiles(); forecastIndex++)
         {
-            auto forecastIndex = locationWeatherData.GetIndexOfKnownValidFieldIndex(i);
+            auto forecastQuads = gribData->GetQuadIteratorForFileIndex(forecastIndex);
             auto imgSuffix = root["forecastSuffixes"][forecastIndex].asString();
             string temperatureFileName = "temperature-" + imgSuffix + ".png",
                    precipFileName = "precip-" + imgSuffix + ".png";
 
             auto temperatureImg = unique_ptr<IMapOverlay>(AllocMapOverlay(overlayBounds.width, overlayBounds.height));
             auto precipImg = unique_ptr<IMapOverlay>(AllocMapOverlay(overlayBounds.width, overlayBounds.height));
-            for(auto k = 0; k < locationWeatherData.GetGeoCoordsLength(); k++)
+            for(auto& quad : forecastQuads)
             {
-                auto& coords = locationWeatherData.GetGeoCoordAtKnownValidIndexes(k);
-                auto pt = geoCalcs.FindXY(coords);
-                auto& wx = locationWeatherData.GetWxAtKnownValidIndexes(i, k);
+                MapOverlayPixel topLeft = {
+                    .pt = geoCalcs.FindXY(quad.topLeft.coord),
+                    .px = ColorFromDegrees(quad.topLeft.wx.temperature)
+                },
+                topRight = {
+                    .pt = geoCalcs.FindXY(quad.topRight.coord),
+                    .px = ColorFromDegrees(quad.topRight.wx.temperature)
+                },
+                bottomLeft = {
+                    .pt = geoCalcs.FindXY(quad.bottomLeft.coord),
+                    .px = ColorFromDegrees(quad.bottomLeft.wx.temperature)
+                },
+                bottomRight = {
+                    .pt = geoCalcs.FindXY(quad.bottomRight.coord),
+                    .px = ColorFromDegrees(quad.bottomRight.wx.temperature)
+                }; 
 
-                WxColor c = ColorFromDegrees(wx.temperature);
-                temperatureImg->SetPixel(pt.x, pt.y, c);
+                temperatureImg->InterpolateFill(topLeft, topRight, bottomLeft, bottomRight);
 
-                if(wx.type == PrecipitationType::None)
-                {
-                    precipImg->SetPixel(pt.x, pt.y, PredefinedColors::transparent);
-                    continue;
-                }
+                #define SET_PRECIP_PX(var) var.px = quad.var.wx.type == PrecipitationType::NoPrecipitation ? PredefinedColors::transparent : ColorFromPrecipitation(quad.var.wx.type, ScaledValueForTypeAndTemp(quad.var.wx.type, quad.var.wx.precipitationRate, quad.var.wx.temperature))
+                SET_PRECIP_PX(topLeft);
+                SET_PRECIP_PX(topRight);
+                SET_PRECIP_PX(bottomLeft);
+                SET_PRECIP_PX(bottomRight);
+                #undef SET_PRECIP_PX
 
-                c = ColorFromPrecipitation(wx.type, ScaledValueForTypeAndTemp(wx.type, wx.precipitationRate, wx.temperature));
-                precipImg->SetPixel(pt.x, pt.y, c);
+                precipImg->InterpolateFill(topLeft, topRight, bottomLeft, bottomRight);
             }
 
             FinishImage("Temperature", forecastIndex, temperatureImg, temperatureFileName);
@@ -150,7 +161,7 @@ public:
     virtual ~WeatherMaps() = default;
 };
 
-IWeatherMaps* AllocWeatherMaps(Json::Value& root, LocationWeatherData& locationWeatherData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
+IWeatherMaps* AllocWeatherMaps(Json::Value& root, const unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
 {
-    return new WeatherMaps(root, locationWeatherData, geoCalcs, mapBackgroundFile);
+    return new WeatherMaps(root, gribData, geoCalcs, mapBackgroundFile);
 }

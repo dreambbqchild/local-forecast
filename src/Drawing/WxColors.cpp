@@ -1,7 +1,7 @@
 #include "WxColors.h"
 
 #define TEMP_COLOR(temp, r, g, b) if(farenheight >= temp) return {r, g, b, 255}
-WxColor ColorFromDegrees(double farenheight) 
+DSColor ColorFromDegrees(double farenheight) 
 {
     TEMP_COLOR(125, 238, 238, 238);
     TEMP_COLOR(120, 255, 232, 232);
@@ -42,7 +42,7 @@ WxColor ColorFromDegrees(double farenheight)
 }
 
 #define RATE_COLOR(p, r, g, b) if(rate >= p) return {r, g, b, 255}
-WxColor ColorFromPrecipitation(PrecipitationType precipitationType, double rate)
+DSColor ColorFromPrecipitation(PrecipitationType precipitationType, double rate)
 {
     if(rate == 0)
         return {0, 0, 0, 0};
@@ -91,7 +91,7 @@ WxColor ColorFromPrecipitation(PrecipitationType precipitationType, double rate)
 }
 
 #define WIND_COLOR(w, r, g, b) if (velocity >= w) return {r, g, b, 255}
-WxColor ColorFromWind(double velocity)
+DSColor ColorFromWind(double velocity)
 {
     WIND_COLOR(50, 240,  38, 29);
     WIND_COLOR(45, 240,  96, 32);

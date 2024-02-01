@@ -1,8 +1,9 @@
 #pragma once
-#include "Grib/LocationWeatherData.h"
+
+#include "Geography/Geo.h"
+#include "Grib/GribData.h"
 
 #include <json/json.h>
-
 #include <filesystem>
 
 class IWeatherMaps
@@ -12,4 +13,4 @@ public:
     virtual ~IWeatherMaps() = default;
 };
 
-IWeatherMaps* AllocWeatherMaps(Json::Value& root, LocationWeatherData& locationWeatherData, GeographicCalcs& geoCalcs, const std::string& mapBackgroundFile);
+IWeatherMaps* AllocWeatherMaps(Json::Value& root, const std::unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const std::string& mapBackgroundFile);

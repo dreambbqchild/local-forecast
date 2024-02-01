@@ -26,7 +26,7 @@ struct DayLabelInfo
     DSRect bounds;
 };
 
-typedef WxColor (*ColorFn)(double farenheight);
+typedef DSColor (*ColorFn)(double farenheight);
 
 const char* GetTimeOfDayEmoji(time_t forecastTime, time_t sunrise, time_t sunset)
 {
@@ -177,7 +177,7 @@ void DrawWithColor(IDrawTextContext* textContext, double dValue, string strValue
 {
     if(TestDouble(dValue) && precipitationType.length())
     {
-        auto type = PrecipitationType::None;
+        auto type = PrecipitationType::NoPrecipitation;
         if(precipitationType == "ice")
             type = PrecipitationType::FreezingRain;
         else if(precipitationType == "rain")
@@ -185,7 +185,7 @@ void DrawWithColor(IDrawTextContext* textContext, double dValue, string strValue
         else if(precipitationType == "snow")
             type = PrecipitationType::Snow;        
 
-        if(type != PrecipitationType::None)
+        if(type != PrecipitationType::NoPrecipitation)
         {
             auto color = ColorFromPrecipitation(type, dValue);
             textContext->SetTextFillColor(color);

@@ -13,10 +13,10 @@ enum RenderTargets {
     AllRenderTargets = RegionalForecastRenderTarget | PersonalForecastsRenderTarget | WeatherMapsRenderTarget | TextForecastRenderTarget | VideoRenderTarget
 };
 
-enum WxModel{ HRRRWxModel, GFSWxModel };
+enum WxModel{ NoModel, HRRRWxModel, GFSWxModel };
 
 void LocalForecastLibInit();
-void LocalForecastLibRenderRegionalForecast(const char* locationKey, char** pathToPngBuffer);
-void LocalForecastLibRenderLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex, char** pathToVideoBuffer, char** pathToTextBuffer);
-void LocalForecastLibRenderCahcedLocalForecast(const char* locationKey, enum WxModel wxModel, enum RenderTargets renderTargets, char** pathToVideoBuffer, char** pathToTextBuffer);
+void LocalForecastLibRenderRegionalForecast(const char* regionKey, char** pathToPngBuffer);
+void LocalForecastLibRenderLocalForecast(const char* regionKey, enum WxModel wxModel, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex, char** pathToVideoBuffer, char** pathToTextBuffer);
+void LocalForecastLibRenderCahcedLocalForecast(const char* regionKey, enum WxModel wxModel, enum RenderTargets renderTargets, char** pathToVideoBuffer, char** pathToTextBuffer);
 #endif

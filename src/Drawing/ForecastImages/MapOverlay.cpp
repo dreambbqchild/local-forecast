@@ -5,7 +5,6 @@
 
 
 #include <algorithm>
-#include <boost/functional/hash.hpp>
 #include <functional>
 #include <iostream>
 #include <unordered_set>
@@ -19,55 +18,15 @@ using namespace std;
     exit(1);\
 }
 
-struct SetPixelData
-{
-    DoublePoint pt;
-    uint32_t* px;
-};
-
-template<> 
-struct hash<DoublePoint>
-{
-  size_t operator()(const DoublePoint& k) const
-  {
-    auto h1 = hash<double>{}(k.x);
-    auto h2 = hash<double>{}(k.y);
-
-    size_t seed = 0;
-    boost::hash_combine(seed, h1);
-    boost::hash_combine(seed, h2);
-    return seed;
-  }
-};
-
 class MapOverlay : public IMapOverlay
 {
     private:
-        bool isInFillMode = false;
         int32_t width, height;
         shared_ptr<IBitmapContext> bitmapContext;
-        vector<SetPixelData> setPixels;
-        unordered_map<DoublePoint, uint32_t> virtualPx; 
 
         DSInt32Size GetSize() { return { width, height }; }
 
-        inline bool RenderableDataPoint(const SetPixelData& data) { return (data.pt.x >= 0 && data.pt.y >= 0) || (data.pt.x <= width && data.pt.y <= height); }
-
-        bool GetKnownDataPoints(int32_t pointsPerRow, vector<SetPixelData>::iterator itr, SetPixelData &topLeft, SetPixelData &topRight, SetPixelData &bottomLeft, SetPixelData &bottomRight)
-        {
-            topLeft = *itr++;
-            topRight = *itr;
-
-            if(topLeft.pt.x > topRight.pt.x)
-                return false;
-
-            itr += pointsPerRow - 1;
-
-            bottomLeft = *itr++;
-            bottomRight = *itr;
-
-            return RenderableDataPoint(topLeft) || RenderableDataPoint(topRight) || RenderableDataPoint(bottomLeft) || RenderableDataPoint(bottomRight);
-        }
+        inline bool RenderableDataPoint(const MapOverlayPixel& data) { return (data.pt.x >= 0 && data.pt.y >= 0) || (data.pt.x <= width && data.pt.y <= height); }
 
         inline uint32_t* GetPixelInternal(DoublePoint pt)
         {
@@ -79,18 +38,16 @@ class MapOverlay : public IMapOverlay
 
         inline uint32_t* GetPixelInternal(double dx, double dy) { return GetPixelInternal({dx, dy}); }
 
-        inline uint32_t* SetPixelInternal(DoublePoint pt, const DSColor& color)
+        inline void SetPixelInternal(DoublePoint pt, const DSColor& color)
         {
             uint32_t* px = GetPixelInternal(pt);
             if(!px)
-                return nullptr;
+                return;
 
             *px = color.rgba;
-
-            return px;    
         }
 
-        inline uint32_t* SetPixelInternal(double dx, double dy, const DSColor& color) { return SetPixelInternal({dx, dy}, color); }
+        inline void SetPixelInternal(double dx, double dy, const DSColor& color) { SetPixelInternal({dx, dy}, color); }
 
         inline void SetPxColorWithWeights(Vector2d& pt, DSColor values[4], double resultWeights[4])
         {
@@ -109,6 +66,7 @@ class MapOverlay : public IMapOverlay
                     .a = WeightValues4(u8Values[3], resultWeights),
                 }                
             };
+
             SetPixelInternal(pt.a[0], pt.a[1], color);
         }
 
@@ -121,64 +79,39 @@ class MapOverlay : public IMapOverlay
         MapOverlay(uint32_t width, uint32_t height) 
         : width(width), height(height), bitmapContext(AllocBitmapContext(width, height)) {}
 
-        void SetPixel(double dx, double dy, const DSColor& color)
+        void InterpolateFill(const MapOverlayPixel& topLeft, const MapOverlayPixel& topRight, const MapOverlayPixel& bottomLeft, const MapOverlayPixel& bottomRight)
         {
-            auto px = SetPixelInternal(dx, dy, color);
-            if(!px)
-            {
-                auto& rgba = virtualPx[{dx, dy}];
-                rgba = color.rgba;                
-                uint32_t* ptr = &rgba;
-                setPixels.push_back({dx, dy, ptr});
-            }
-            else
-                setPixels.push_back({dx, dy, px});
-        }
+            if(!RenderableDataPoint(topLeft) && !RenderableDataPoint(topRight) && !RenderableDataPoint(bottomLeft) && !RenderableDataPoint(bottomRight))
+                return;
 
-        void InterpolateFill(int32_t pointsPerRow)
-        {
-            auto itr = setPixels.begin();
-            auto setPixelsSize = static_cast<int32_t>(setPixels.size());
-            SetPixelData topLeft = {0}, 
-                        topRight = {0},
-                        bottomLeft = {0},
-                        bottomRight = {0};
+            double yStart = CalcFillStart(topLeft.pt.y), 
+                    xStart = CalcFillStart(bottomLeft.pt.x), 
+                    yEnd = CalcFillEnd(bottomRight.pt.y, height),
+                    xEnd = CalcFillEnd(topRight.pt.x, width);
 
-            isInFillMode = true;   
-            for(auto i = pointsPerRow; i < setPixelsSize; i++, itr++)
-            {
-                if(!GetKnownDataPoints(pointsPerRow, itr, topLeft, topRight, bottomLeft, bottomRight))
+            for(auto y = yStart; y < yEnd; y += CalcNextStep(y, yStart, yEnd))
+            for(auto x = xStart; x < xEnd; x += CalcNextStep(x, xStart, xEnd))
+            {                     
+                Vector2d v = {x, y};
+                Vector2d bounds[4] = {
+                    {topLeft.pt.x, topLeft.pt.y},
+                    {topRight.pt.x, topRight.pt.y},
+                    {bottomRight.pt.x, bottomRight.pt.y},
+                    {bottomLeft.pt.x, bottomLeft.pt.y}
+                };
+                double resultWeights[4] = {0};
+
+                if(!BarycentricCoordinatesForCWTetrahedron(v, bounds, resultWeights))
                     continue;
 
-                double yStart = CalcFillStart(topLeft.pt.y), 
-                       xStart = CalcFillStart(bottomLeft.pt.x), 
-                       yEnd = CalcFillEnd(bottomRight.pt.y, height),
-                       xEnd = CalcFillEnd(topRight.pt.x, width);
+                DSColor values[4] = {
+                    {.rgba = topLeft.px.rgba}, 
+                    {.rgba = topRight.px.rgba}, 
+                    {.rgba = bottomRight.px.rgba}, 
+                    {.rgba = bottomLeft.px.rgba}
+                };
 
-                for(auto y = yStart; y < yEnd; y += CalcNextStep(y, yStart, yEnd))
-                for(auto x = xStart; x < xEnd; x += CalcNextStep(x, xStart, xEnd))
-                {                     
-                    Vector2d v = {x, y};
-                    Vector2d bounds[4] = {
-                        {topLeft.pt.x, topLeft.pt.y},
-                        {topRight.pt.x, topRight.pt.y},
-                        {bottomRight.pt.x, bottomRight.pt.y},
-                        {bottomLeft.pt.x, bottomLeft.pt.y}
-                    };
-                    double resultWeights[4] = {0};
-
-                    if(!BarycentricCoordinatesForCWTetrahedron(v, bounds, resultWeights))
-                        continue;
-
-                    DSColor values[4] = {
-                        {.rgba = *topLeft.px}, 
-                        {.rgba = *topRight.px}, 
-                        {.rgba = *bottomRight.px}, 
-                        {.rgba = *bottomLeft.px}
-                    };
-
-                    SetPxColorWithWeights(v, values, resultWeights);
-                }
+                SetPxColorWithWeights(v, values, resultWeights);
             }
         }
 

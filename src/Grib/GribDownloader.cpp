@@ -45,8 +45,9 @@ string GetFilePathTemplate(string outputDirectory, WeatherModel weatherModel)
             return fs::path(outputDirectory) / string("hrrr-%02d.grib2");
         case WeatherModel::GFS:
             return fs::path(outputDirectory) / string("gfs-%03d.grib2");
+        default:
+            ERR_OUT("Unsupported WeatherModel")
     }
-    return "";
 }
 
 string GetUrlForWeatherModel(const GeoBounds& geoBounds, WeatherModel weatherModel, int32_t hour, int32_t forecastIndex, const char* timeStamp)
@@ -67,18 +68,13 @@ string GetUrlForWeatherModel(const GeoBounds& geoBounds, WeatherModel weatherMod
     }
     else if(weatherModel == WeatherModel::GFS)
     {
-        double gfsLeftlon = geoBounds.leftLon - 0.5,
-               gfsToplat = geoBounds.topLat + 0.5,
-               gfsRightlon = geoBounds.rightLon + 0.5,
-               gfsBottomlat = geoBounds.bottomLat - 0.5;
-
         urlStream << "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=gfs.t" <<
             setfill('0') << setw(2) << hour << "z.pgrb2.0p25.f" <<
             setfill('0') << setw(3) << forecastIndex <<
-            "&lev_10_m_above_ground=on&lev_20_m_above_ground=on&lev_2_m_above_ground=on&lev_entire_atmosphere=on&lev_entire_atmosphere_%5C%28considered_as_a_single_layer%5C%29=on&lev_mean_sea_level=on&lev_surface=on&lev_top_of_atmosphere=on&all_var=on&subregion=&leftlon=" << fixed << gfsLeftlon << 
-            "&rightlon=" << gfsRightlon << 
-            "&toplat=" << gfsToplat <<
-            "&bottomlat=" << gfsBottomlat << 
+            "&lev_10_m_above_ground=on&lev_20_m_above_ground=on&lev_2_m_above_ground=on&lev_entire_atmosphere=on&lev_entire_atmosphere_%5C%28considered_as_a_single_layer%5C%29=on&lev_mean_sea_level=on&lev_surface=on&lev_top_of_atmosphere=on&all_var=on&subregion=&leftlon=" << fixed << geoBounds.leftLon << 
+            "&rightlon=" << geoBounds.rightLon << 
+            "&toplat=" << geoBounds.topLat <<
+            "&bottomlat=" << geoBounds.bottomLat << 
             "&dir=%2Fgfs."<< timeStamp <<
             "%2F" << setfill('0') << setw(2) << hour << "%2Fatmos";
     }
@@ -122,8 +118,8 @@ bool LoadDownloadInfo(fs::path outputDirectory, SaveData& saveData, bool exitOnN
     return true;
 }
 
-GribDownloader::GribDownloader(const SelectedRegion& selectedLocation, string outputDirectory)
-    : selectedLocation(selectedLocation), usingCachedMode(true)
+GribDownloader::GribDownloader(const SelectedRegion& selectedRegion, string outputDirectory)
+    : selectedRegion(selectedRegion), usingCachedMode(true)
 {
     SaveData saveData = {0};
     LoadDownloadInfo(outputDirectory, saveData, true);
@@ -132,8 +128,8 @@ GribDownloader::GribDownloader(const SelectedRegion& selectedLocation, string ou
     filePathTemplate = ::GetFilePathTemplate(outputDirectory, saveData.weatherModel);
 }
 
-GribDownloader::GribDownloader(const SelectedRegion& selectedLocation, string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber)
-    :  selectedLocation(selectedLocation), maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), usingCachedMode(false), weatherModel(weatherModel), forecastStartTime(GetStartTimeForWeatherModelDownload(weatherModel)), outputDirectory(outputDirectory)
+GribDownloader::GribDownloader(const SelectedRegion& selectedRegion, string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber)
+    :  selectedRegion(selectedRegion), maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), usingCachedMode(false), weatherModel(weatherModel), forecastStartTime(GetStartTimeForWeatherModelDownload(weatherModel)), outputDirectory(outputDirectory)
 {
     filePathTemplate = ::GetFilePathTemplate(outputDirectory, weatherModel);
 }
@@ -170,7 +166,7 @@ void GribDownloader::Download()
 
     cout << "Downloading the " << (weatherModel == WeatherModel::GFS ? "GFS" : "HRRR") << " model with timestamp " << timeStamp << " at hour " << forecastStart.tm_hour << "..." << endl;
 
-    auto geoBounds = selectedLocation.GetRegionBounds();
+    auto geoBounds = selectedRegion.GetForecastAreaBounds();
     #pragma omp parallel for num_threads(3)
     for(uint32_t i = skipToGribNumber; i <= maxGribIndex; i++)
     {

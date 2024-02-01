@@ -12,13 +12,13 @@ private:
     WeatherModel weatherModel;
     time_t forecastStartTime;
     std::string filePathTemplate, outputDirectory;
-    const SelectedRegion& selectedLocation;
+    const SelectedRegion& selectedRegion;
 
     void Init(void* vSaveData);
 
 public:
-    GribDownloader(const SelectedRegion& selectedLocation, std::string outputDirectory);
-    GribDownloader(const SelectedRegion& selectedLocation, std::string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber = 0);
+    GribDownloader(const SelectedRegion& selectedRegion, std::string outputDirectory);
+    GribDownloader(const SelectedRegion& selectedRegion, std::string outputDirectory, WeatherModel weatherModel, uint16_t maxGribIndex, uint16_t skipToGribNumber = 0);
 
     std::string GetFilePathTemplate() {return filePathTemplate;}
     uint16_t GetMaxGribIndex() {return maxGribIndex;}

@@ -5,8 +5,7 @@
 
 #include <vector>
 
-struct DetailedGeoCoord : GeoCoord {
-    uint16_t index;
+struct GeoCoordPoint : GeoCoord {
     double x, y;
 };
 
@@ -19,7 +18,7 @@ protected:
   double leftX = 0, rightX = 0, topY = 0, bottomY = 0, width = 0, height = 0, xScale = 0, yScale = 0;
   
 public:
-  GeographicCalcs(const SelectedRegion& selectedLocation);
+  GeographicCalcs(const SelectedRegion& selectedRegion);
   Int16Size Bounds() {return {imageWidth, imageHeight}; }
   DoublePoint FindXY(const GeoCoord& coords);
   virtual ~GeographicCalcs() = default;
@@ -27,10 +26,10 @@ public:
 
 class IGeoPointSet {
 public:
-  virtual void GetBoundingBox(const Location& location, uint32_t pointsPerRow, DetailedGeoCoord resultIndexes[4]) = 0;
+  virtual void GetBoundingBox(const Location& location, GeoCoordPoint resultIndexes[4]) = 0;
   virtual ~IGeoPointSet() = default;
 };
 
-IGeoPointSet* AllocGeoPointSet(std::vector<GeoCoord>& geoCoords, GeographicCalcs& geoCalcs);
+IGeoPointSet* AllocGeoPointSet(const std::vector<GeoCoord>& geoCoords, GeographicCalcs& geoCalcs);
 
 double CalcDistanceInMetersBetweenCoords(GeoCoord first, GeoCoord second);

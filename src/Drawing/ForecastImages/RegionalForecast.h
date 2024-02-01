@@ -18,10 +18,10 @@ private:
     static std::function<DSRect(IDrawTextContext*)> AddLabel(DSColor color, std::string& text, double offsetLeft, double offsetTop);
     static std::function<DSRect(IDrawTextContext*)> RenderForecast(IDrawService* draw, double offsetLeft, double offsetTop, ForecastBase* forecast);
 
-    static Json::Value LoadForecast(const SelectedRegion& selectedLocation, const std::filesystem::path& pathToJson);
+    static Json::Value LoadForecast(const SelectedRegion& selectedRegion, const std::filesystem::path& pathToJson);
     static double DrawBoxHeaderLabels(IDrawService* draw, double top, std::string& labelLeft, DSColor colorLeft, std::string& labelRight, DSColor colorRight);
     static double DrawForecastBoxes(IDrawService* draw, double top, ForecastBase* forecastLeft, ForecastBase* forecastRight);
     
 public:
-    void Render(const SelectedRegion& selectedLocation, const std::filesystem::path& pathToJson, const std::filesystem::path& pathToPng);
+    void Render(const SelectedRegion& selectedRegion, const std::filesystem::path& pathToJson, const std::filesystem::path& pathToPng);
 };

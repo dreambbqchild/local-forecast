@@ -3,7 +3,7 @@
 
 enum PrecipitationType 
 {
-    None = 0,
+    NoPrecipitation = 0,
     Rain = 1 << 0,
     FreezingRain = 1 << 1,
     Snow = 1 << 2
