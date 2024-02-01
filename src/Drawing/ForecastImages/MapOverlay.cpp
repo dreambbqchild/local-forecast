@@ -12,12 +12,6 @@
 
 using namespace std;
 
-#define TestSetPixelsItr(itr) if(itr == setPixels.end())\
-{\
-    cerr << "Ran out of Xs. Choose a wider area to render." << endl;\
-    exit(1);\
-}
-
 class MapOverlay : public IMapOverlay
 {
     private:
@@ -122,17 +116,6 @@ class MapOverlay : public IMapOverlay
 
         void Save(const char* fileName)
         {
-            //#define DEBUG_POINTS
-            #ifdef DEBUG_POINTS
-            for(auto &setPx : setPixels)
-            {
-                setPx.px[0] = 255;
-                setPx.px[1] = 0;
-                setPx.px[2] = 0;
-                setPx.px[3] = 255;
-            }
-            #endif
-
             bitmapContext->Save(fileName);
         }
 
