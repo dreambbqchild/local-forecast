@@ -206,6 +206,7 @@ void DrawWithColor(IDrawTextContext* textContext, double dValue, string strValue
 
 DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawService>& draw, Json::Value& root, Json::Value& location, double xOffset, double areaWidth, system_clock::time_point& now, vector<double>& columnXs, int32_t maxRows)
 {
+    int32_t dayCounter = 0;
     system_clock::time_point sunrise, sunset;
     vector<DayLabelInfo> dayLabels;
     DSSize forecastTableSize = {0};
@@ -216,6 +217,9 @@ DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawServi
 
     auto rowsRendered = GetForecastsFromNow(root, now, maxRows, [&](system_clock::time_point& forecastTime, int32_t forecastIndex)
     {
+        if((system_clock::to_time_t(forecastTime) + timezone) % 86400 == 0)
+            dayCounter++;
+
         if(isMeasurePass && forecastTableSize.height)
             return;
 
@@ -239,7 +243,7 @@ DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawServi
                 GetSunriseSunset(location["sun"], forecastDate, sunrise, sunset);
                 dayLabels.push_back({ GetShortDayOfWeek(forecastTime) + " " + forecastDate, {xOffset, TABLE_TOP + forecastTableSize.height, areaWidth, ROW_HEIGHT }});
                 forecastTableSize.height += ROW_HEIGHT;
-            }                
+            }               
 
             auto shortHour = GetShortHour(forecastTime);
             while(shortHour.length() < 4)
@@ -308,7 +312,7 @@ DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawServi
 
     return {
         .width = forecastTableSize.width, 
-        .height = forecastTableSize.height * (rowsRendered + dayLabels.size()) + TABLE_TOP
+        .height = forecastTableSize.height * (rowsRendered + dayCounter) + TABLE_TOP
     };  //rows + header + Label Rows.
 }
 
