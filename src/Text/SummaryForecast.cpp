@@ -87,7 +87,7 @@ private:
         else if(extremes.snowTotal >= 6)
             result << "Get out the shovels";
         else if(extremes.snowTotal >= 3)
-            result << "There may be some trecherous snowy driving out your front door";
+            result << "There may be some treacherous snowy driving out your front door";
         else
             result << "Got some incoming snowy slop to deal with";
 
