@@ -90,9 +90,9 @@ function* totalNew(howMany) {
         yield "<td>Total</td><td>New</td>";
 }
 
-let folder = path.join('forecasts', 'hrrr');
+let folder = path.join('forecasts', 't-c', 'hrrr');
 if(process.argv.length > 2)
-    folder = path.join('forecasts', process.argv[2]);
+    folder = path.join('forecasts', 't-c', process.argv[2]);
 
 const now = new Date();
 const forecast = JSON.parse(fs.readFileSync(path.join(folder, 'forecast.json')));
