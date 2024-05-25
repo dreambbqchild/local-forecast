@@ -357,7 +357,7 @@ Json::Value RegionalForecast::LoadForecast(const SelectedRegion& selectedRegion,
     DownloadStreams streams = { &buffer, &outStream };
 
     auto regionalCoord = selectedRegion.GetRegionalCoord();
-    auto url = string("https://api.openweathermap.org/data/2.5/onecall?lat=" + to_string(regionalCoord.lat) + "&lon=" + to_string(regionalCoord.lon) + "&appid=") + appid;
+    auto url = string("https://api.openweathermap.org/data/3.0/onecall?lat=" + to_string(regionalCoord.lat) + "&lon=" + to_string(regionalCoord.lon) + "&appid=") + appid;
     HttpClient::Get(url.c_str(), DownloadToStream, &streams);
 
     outStream.close();
