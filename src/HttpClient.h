@@ -1,8 +1,11 @@
 #pragma once
 
 #include <stddef.h>
-#include <stdlib.h> 
+#include <stdlib.h>
+
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 #include <curl/curl.h>
 
@@ -23,23 +26,36 @@ class HttpClient
             exit(1);
         }
 
-        long httpCode = 0;
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, userData);
-        auto code = curl_easy_perform(curl);
+        while(true)
+        {
+            long httpCode = 0;
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, userData);
+            auto code = curl_easy_perform(curl);
 
-        if(code != CURLE_OK)
-        {
-            cout << "Curl failed: " << code << endl;
-            exit(1);
-        }
-        
-        curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &httpCode);
-        if(httpCode >= 300)
-        {
-            cout << "Http request failed: " << httpCode << endl;
-            exit(1);
+            if(code != CURLE_OK)
+            {
+                cout << "Curl failed: " << code << endl;
+                exit(1);
+            }
+            
+            curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &httpCode);
+            if(httpCode >= 300)
+            {
+                cout << "Http request failed: " << httpCode << endl;
+                if(httpCode == 404)
+                {
+                    cout << "Will try " << url << "again..." << endl;
+                    this_thread::sleep_for(10s);
+                    cout << "Re-downloading " << url << endl;
+                    continue;
+                }
+
+                exit(1);
+            }
+
+            break;
         }
 
         curl_easy_cleanup(curl);
