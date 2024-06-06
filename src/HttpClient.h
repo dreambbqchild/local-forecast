@@ -26,6 +26,7 @@ class HttpClient
             exit(1);
         }
 
+        auto retryMultiplier = 1;
         while(true)
         {
             long httpCode = 0;
@@ -46,9 +47,12 @@ class HttpClient
                 cout << "Http request failed: " << httpCode << endl;
                 if(httpCode == 404)
                 {
-                    cout << "Will try " << url << "again..." << endl;
-                    this_thread::sleep_for(10s);
+                    cout << "Will try " << url << " again..." << endl;
+                    this_thread::sleep_for(10s * retryMultiplier);
                     cout << "Re-downloading " << url << endl;
+
+                    retryMultiplier = min(retryMultiplier + 1, 6);
+
                     continue;
                 }
 
