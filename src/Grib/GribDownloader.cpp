@@ -25,8 +25,7 @@ time_t GetStartTimeForWeatherModelDownload(WeatherModel weatherModel)
 
     if(weatherModel == WeatherModel::HRRR && sinceHourDivisibleBy6 < (secondsInHour + (55 * secondsInMinute)))
         now -= secondsInHour * 6;
-
-    if(weatherModel == WeatherModel::GFS && sinceHourDivisibleBy6 < ((secondsInHour * 5) + (55 * secondsInMinute)))
+    else if(weatherModel == WeatherModel::GFS && sinceHourDivisibleBy6 < ((secondsInHour * 5) + (55 * secondsInMinute)))
         now -= secondsInHour * 6;
 
     return now;
