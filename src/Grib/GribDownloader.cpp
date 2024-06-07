@@ -17,24 +17,19 @@ struct SaveData {
 };
 
 time_t GetStartTimeForWeatherModelDownload(WeatherModel weatherModel)
-{
+{   
     auto now = time(nullptr);
-    tm gmtm = {0};
-    now -= secondsInHour;
+    auto sinceHourDivisibleBy6 = now % (secondsInHour * 6);
     
-    gmtime_r(&now, &gmtm);
-    auto fromLastDivBy6Hr = gmtm.tm_hour % 6;
-    now -= secondsInHour * fromLastDivBy6Hr;
-    if(weatherModel == WeatherModel::HRRR && fromLastDivBy6Hr == 0 && gmtm.tm_min < 55)
-        now -= secondsInHour * 6;
-    else if(weatherModel == WeatherModel::GFS && fromLastDivBy6Hr <= 4 && gmtm.tm_min < 55)
+    now -= sinceHourDivisibleBy6;
+
+    if(weatherModel == WeatherModel::HRRR && sinceHourDivisibleBy6 < (secondsInHour + (55 * secondsInMinute)))
         now -= secondsInHour * 6;
 
-    gmtime_r(&now, &gmtm);
-    gmtm.tm_min = 0;
-    gmtm.tm_sec = 0;
+    if(weatherModel == WeatherModel::GFS && sinceHourDivisibleBy6 < ((secondsInHour * 5) + (55 * secondsInMinute)))
+        now -= secondsInHour * 6;
 
-    return mkgmtime(&gmtm);
+    return now;
 }
 
 string GetFilePathTemplate(string outputDirectory, WeatherModel weatherModel)

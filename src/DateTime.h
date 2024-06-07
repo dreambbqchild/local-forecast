@@ -3,7 +3,8 @@
 #include <chrono>
 #include <string>
 
-const uint16_t secondsInHour = 60 * 60;
+const uint16_t secondsInMinute = 60;
+const uint16_t secondsInHour = secondsInMinute * 60;
 const uint32_t secondsInDay = secondsInHour * 24;
 
 inline time_t mkgmtime(tm* tm) { return mktime(tm) - timezone; }
