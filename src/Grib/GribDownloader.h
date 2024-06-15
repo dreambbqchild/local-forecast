@@ -26,5 +26,6 @@ public:
     WeatherModel GetWeatherModel() {return weatherModel;}
     time_t GetForecastStartTime() {return forecastStartTime;}
 
+    bool UsingCachedMode() { return usingCachedMode; }
     void Download();
 };

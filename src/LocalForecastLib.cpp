@@ -37,6 +37,8 @@ struct ForecastData {
 
 #define HasFlag(f, t) ((f & t) == f)
 
+inline void ClearFlag(RenderTargets flag, RenderTargets& from) { from = (RenderTargets)(~flag & from);  }
+
 void RenderRegionalForecastPaths(const SelectedRegion& selectedRegion, fs::path& pathToJson, fs::path& pathToPng)
 {
     fs::path openweatherPath = fs::path("forecasts") / selectedRegion.GetOutputFolder();
@@ -78,7 +80,7 @@ private:
     SelectedRegion selectedRegion;
     GeographicCalcs geoCalcs;
 
-    void ProcessGribData(const ForecastData& data, RenderTargets renderTargets, bool useCache)
+    void ProcessGribData(const ForecastData& data, bool useCache)
     {
         this->weatherModel = data.weatherModel;
 
@@ -123,12 +125,16 @@ private:
     {
         if(HasFlag(RegionalForecastRenderTarget, renderTargets))
             RenderRegionalForecast(selectedRegion, pathToRegionalForecastJson, pathToRegionalForecastPng);
+        else
+            cout << "Skipping regional forecast." << endl;
 
         if(HasFlag(WeatherMapsRenderTarget, renderTargets))
         {
             auto weatherMaps = unique_ptr<IWeatherMaps>(AllocWeatherMaps(root, gribData, geoCalcs, selectedRegion.GetMapBackgroundFileName()));
             weatherMaps->GenerateForecastMaps(forecastFilePath);
         }
+        else
+            cout << "Skipping Weather Maps." << endl;
 
         if(HasFlag(PersonalForecastsRenderTarget, renderTargets))
         {
@@ -147,6 +153,8 @@ private:
             auto textSummary = unique_ptr<ISummaryForecast>(AllocSummaryForecast());
             textSummary->Render(textFilePath, root);
         }
+        else
+            cout << "Skipping text forecast." << endl;
     }
 
     string SelectAudioFile(system_clock::time_point now)
@@ -230,21 +238,27 @@ public:
 
     inline const fs::path& GetTextFilePath() { return textFilePath; }
 
-    void ProcessCachedGribData(RenderTargets renderTargets)
+    void ProcessCachedGribData(RenderTargets& renderTargets)
     {
         GribDownloader downloader(selectedRegion, gribFilePath);
         ForecastData data = ForecastDataFromDownloader(downloader);
 
-        ProcessGribData(data, renderTargets, true); 
+        ClearFlag(WeatherMapsRenderTarget, renderTargets);
+
+        ProcessGribData(data, true); 
     }
 
-    void ProcessGribData(RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex) 
+    void ProcessGribData(RenderTargets& renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex) 
     {
         GribDownloader downloader(selectedRegion, gribFilePath, weatherModel, maxGribIndex, skipToGribNumber);
         downloader.Download();
         ForecastData data = ForecastDataFromDownloader(downloader);
 
-        ProcessGribData(data, renderTargets, false); 
+        auto useCache = downloader.UsingCachedMode();
+        if(useCache)
+            ClearFlag(WeatherMapsRenderTarget, renderTargets);
+
+        ProcessGribData(data, useCache); 
     }
 
     void Run(RenderTargets renderTargets)

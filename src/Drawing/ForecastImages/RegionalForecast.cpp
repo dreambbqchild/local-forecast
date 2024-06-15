@@ -337,7 +337,7 @@ Json::Value RegionalForecast::LoadForecast(const SelectedRegion& selectedRegion,
 
     if(!appid)
     {
-        cout << "Returning data cached in " << pathToJson << endl;
+        cout << "No app id. Returning regional data cached in " << pathToJson << endl;
         if(!fs::exists(pathToJson))
             ERR_OUT(pathToJson << " not found. Nor was the OPENWEATHERMAP_APPID environment variable set. Exiting.")
 
