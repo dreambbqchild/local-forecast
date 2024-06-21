@@ -253,12 +253,7 @@ public:
         GribDownloader downloader(selectedRegion, gribFilePath, weatherModel, maxGribIndex, skipToGribNumber);
         downloader.Download();
         ForecastData data = ForecastDataFromDownloader(downloader);
-
-        auto useCache = downloader.UsingCachedMode();
-        if(useCache)
-            ClearFlag(WeatherMapsRenderTarget, renderTargets);
-
-        ProcessGribData(data, useCache); 
+        ProcessGribData(data, false); 
     }
 
     void Run(RenderTargets renderTargets)
