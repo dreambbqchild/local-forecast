@@ -307,7 +307,9 @@ private:
                         wx.totalSnow = ToInchesFromMeters(fieldData.value);
                     else if(ShortNameIs("2d"))
                         wx.dewpoint = ToFarenheight(fieldData.value);
-                    else if(ShortNameIs("2t"))
+                    else if(wxModel == WeatherModel::HRRR && ShortNameIs("2t"))
+                        wx.temperature = ToFarenheight(fieldData.value);
+                    else if(wxModel == WeatherModel::GFS && ShortNameIs("t"))
                         wx.temperature = ToFarenheight(fieldData.value);
                     else if(ShortNameIs("tcc") && TypeOfLevelIs("atmosphere"))
                         wx.totalCloudCover = fieldData.value;
