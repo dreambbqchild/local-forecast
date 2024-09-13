@@ -85,14 +85,17 @@ private:
         this->weatherModel = data.weatherModel;
 
         auto gribDataPath = forecastFilePath / string("gribdata.bin");
-        auto forecastJsonPath = fs::path(forecastFilePath) / string("forecast.json");        
+        auto forecastJsonPath = forecastFilePath / string("forecast.json");        
 
         if(!useCache)
         {
+            if(!std::filesystem::exists(forecastFilePath))
+                std::filesystem::create_directories(forecastFilePath);
+
             unique_ptr<IGribReader> gribReader(AllocGribReader(data.gribFileTemplate, selectedRegion, data.weatherModel, system_clock::from_time_t(data.forecastStart), data.skipToGribNumber, data.maxGribIndex, geoCalcs));
             gribReader->CollectData(root, gribData);
 
-            cout << "Saving forecast.json..." << endl;
+            cout << "Saving " << forecastFilePath << "..." << endl;
             Json::StreamWriterBuilder builder;
             builder["indentation"] = "";
             const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());    
@@ -102,18 +105,18 @@ private:
             writer->write(root, &forecastJson);
             forecastJson.close();
 
-            cout << "Saving gribdata.bin..." << endl;
+            cout << "Saving " << gribDataPath <<  "..." << endl;
             gribData->Save(gribDataPath);
         }
         else
         {
-            cout << "Loading forecast.json..." << endl;
+            cout << "Loading " << forecastJsonPath << "..." << endl;
             ifstream forecastJson;
             forecastJson.open(forecastJsonPath);
             forecastJson >> root;
             forecastJson.close();
 
-            cout << "Loading gribdata.bin..." << endl;
+            cout << "Loading " << gribDataPath << "..." << endl;
             gribData = unique_ptr<GribData>(GribData::Load(gribDataPath));
         }
 

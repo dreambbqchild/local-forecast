@@ -126,6 +126,9 @@ GribDownloader::GribDownloader(const SelectedRegion& selectedRegion, string outp
     :  selectedRegion(selectedRegion), maxGribIndex(maxGribIndex), skipToGribNumber(skipToGribNumber), usingCachedMode(false), weatherModel(weatherModel), forecastStartTime(GetStartTimeForWeatherModelDownload(weatherModel)), outputDirectory(outputDirectory)
 {
     filePathTemplate = ::GetFilePathTemplate(outputDirectory, weatherModel);
+    
+    if(!std::filesystem::exists(outputDirectory))
+        std::filesystem::create_directories(outputDirectory);
 }
 
 void GribDownloader::Init(void* vSaveData)
