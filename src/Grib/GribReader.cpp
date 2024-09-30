@@ -319,13 +319,9 @@ private:
                         wx.windSpeed = ToMPH(fieldData.value);
                     else if(ShortNameIs("gust"))
                         wx.gust = ToMPH(fieldData.value);
-                    else if(wxModel == WeatherModel::HRRR && ShortNameIs("10u"))
+                    else if(ShortNameIs("10u"))
                         wx.windU = fieldData.value;
-                    else if(wxModel == WeatherModel::GFS && ShortNameIs("u") && TypeOfLevelIs("heightAboveGround") && LevelIs("20"))
-                        wx.windU = fieldData.value;
-                    else if(wxModel == WeatherModel::HRRR && ShortNameIs("10v"))
-                        wx.windV = fieldData.value;
-                    else if(wxModel == WeatherModel::GFS && ShortNameIs("v") && TypeOfLevelIs("heightAboveGround") && LevelIs("20"))
+                    else if(ShortNameIs("10v"))
                         wx.windV = fieldData.value;
                     else if(wxModel == WeatherModel::HRRR && ShortNameIs("mslma"))
                         wx.pressure = ToInHg(fieldData.value);
