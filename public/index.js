@@ -12,8 +12,8 @@ export const view = (data, state) => html`
 
         function initMap() {
           map = new google.maps.Map(document.getElementById("map"), {
-            center: { lat: 44.90100491755502, lng: -93.24577392578125 },
-            zoom: 11,
+            center: { lat: 44.88235560047771, lng: -93.22148491728129 },
+            zoom: 10,
             disableDefaultUI: true
           });
         }
