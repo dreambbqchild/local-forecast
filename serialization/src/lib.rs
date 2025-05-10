@@ -5,8 +5,8 @@ use std::slice;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
 
-use c_structs::WxSingle;
-use rust_structs::{Coords, Forecast, Location, Moon, Sun};
+use c_structs::{Coords, Sun, WxSingle};
+use rust_structs::{Forecast, Location, Moon};
 
 pub mod c_structs;
 pub mod rust_structs;

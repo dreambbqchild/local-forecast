@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-use crate::{c_structs::WxSingle, precipitation_type::PrecipitationType};
+use crate::{c_structs::{Coords, Sun, WxSingle}, precipitation_type::PrecipitationType};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,22 +59,6 @@ impl Wx {
         self.wind_dir[at] = single.wind_dir;
         self.wind_spd[at] = single.wind_spd
     }
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Sun {
-    pub rise: u64,
-    pub set: u64
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Coords {
-    pub lat: f64,
-    pub lon: f64,
-    pub x: u16,
-    pub y: u16
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

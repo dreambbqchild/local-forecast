@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[repr(C)]
 pub struct WxSingle {
     pub dewpoint: i16,
@@ -14,4 +16,22 @@ pub struct WxSingle {
     pub vis: i16,
     pub wind_dir: i16,
     pub wind_spd: i16
+}
+
+#[repr(C)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Coords {
+    pub lat: f64,
+    pub lon: f64,
+    pub x: u16,
+    pub y: u16
+}
+
+#[repr(C)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Sun {
+    pub rise: u64,
+    pub set: u64
 }
