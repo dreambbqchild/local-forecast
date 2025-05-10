@@ -2,6 +2,19 @@ cmake_minimum_required(VERSION 3.18)
 project(local-forecast VERSION 1.0.0)
 set (CMAKE_CXX_STANDARD 20)
 
+include(ExternalProject)
+
+set_directory_properties(PROPERTIES EP_PREFIX ${CMAKE_BINARY_DIR}/forecast-repo)
+
+ExternalProject_Add(
+    rust_forecast_repo
+    DOWNLOAD_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND cargo build COMMAND cargo build --release
+    BINARY_DIR "${CMAKE_SOURCE_DIR}/forecast-repo"
+    INSTALL_COMMAND ""
+    LOG_BUILD ON)
+
 include_directories(src)
 include_directories(/usr/local/include)
 
@@ -49,10 +62,24 @@ add_library(localforecast SHARED
     src/Wx.cpp     
 )
 
+add_dependencies(localforecast rust_forecast_repo)
+
 find_package(OpenMP)
 
 set_property (TARGET localforecast APPEND_STRING PROPERTY COMPILE_FLAGS "-fobjc-arc")
-target_link_libraries(localforecast avcodec avformat curl eccodes GeographicLib jsoncpp OpenMP::OpenMP_CXX sunset swscale "-framework AppKit"  "-framework CoreGraphics" "-framework ImageIO" "-framework UniformTypeIdentifiers")
+target_link_libraries(localforecast
+    debug "${CMAKE_SOURCE_DIR}/forecast-repo/target/debug/libforecast_repo.a"
+    optimized "${CMAKE_SOURCE_DIR}/forecast-repo/target/release/libforecast_repo.a"
+    avcodec
+    avformat
+    curl
+    eccodes
+    GeographicLib
+    jsoncpp
+    OpenMP::OpenMP_CXX
+    sunset
+    swscale
+    "-framework AppKit"  "-framework CoreGraphics" "-framework ImageIO" "-framework UniformTypeIdentifiers")
 
 add_executable(local-forecast 
     src/main.cpp 

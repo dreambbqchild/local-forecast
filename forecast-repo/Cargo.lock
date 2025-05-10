@@ -13,6 +13,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forecast-repo"
+version = "0.1.0"
+dependencies = [
+ "bitmask-enum",
+ "once_cell",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -84,16 +94,6 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "serialization"
-version = "0.1.0"
-dependencies = [
- "bitmask-enum",
- "once_cell",
- "serde",
- "serde_json",
 ]
 
 [[package]]

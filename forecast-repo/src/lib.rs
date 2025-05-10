@@ -45,7 +45,7 @@ fn with_forecast_location<F>(forecast_c_str: *const c_char, location_c_str: *con
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn init_forecast(forecast_c_str: *const c_char) {
+pub extern "C" fn forecast_repo_init_forecast(forecast_c_str: *const c_char) {
     let c_str = unsafe { CStr::from_ptr(forecast_c_str) };
     let forecast_str = c_str.to_str().expect("To convert forecast to a string");
 
@@ -54,12 +54,12 @@ pub extern "C" fn init_forecast(forecast_c_str: *const c_char) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn add_forecast_start_time(forecast_c_str: *const c_char, forecast_time: u64) {
+pub extern "C" fn forecast_repo_add_forecast_start_time(forecast_c_str: *const c_char, forecast_time: u64) {
     with_forecast(forecast_c_str, |f| f.forecast_times.push(forecast_time));
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn add_lunar_phase(forecast_c_str: *const c_char, day: i32, age: f64, name_c_str: *const c_char, emoji_c_str: *const c_char) {
+pub extern "C" fn forecast_repo_add_lunar_phase(forecast_c_str: *const c_char, day: i32, age: f64, name_c_str: *const c_char, emoji_c_str: *const c_char) {
     with_forecast(forecast_c_str, |f| {
         let mut c_str = unsafe { CStr::from_ptr(name_c_str) };
         let name = c_str.to_str().expect("To convert name to a string").to_string();
@@ -72,7 +72,7 @@ pub extern "C" fn add_lunar_phase(forecast_c_str: *const c_char, day: i32, age: 
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn init_location(forecast_c_str: *const c_char, location_c_str: *const c_char, is_city: bool, coords_ptr: *const Coords) {
+pub extern "C" fn forecast_repo_init_location(forecast_c_str: *const c_char, location_c_str: *const c_char, is_city: bool, coords_ptr: *const Coords) {
     with_forecast_location(forecast_c_str, location_c_str, |l| {
         let coords: &Coords = unsafe { &*coords_ptr };
 
@@ -82,7 +82,7 @@ pub extern "C" fn init_location(forecast_c_str: *const c_char, location_c_str: *
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn add_sun_for_location(forecast_c_str: *const c_char, location_c_str: *const c_char, day: i32, sun_ptr: *const Sun) {
+pub extern "C" fn forecast_repo_add_sun_for_location(forecast_c_str: *const c_char, location_c_str: *const c_char, day: i32, sun_ptr: *const Sun) {
     with_forecast_location(forecast_c_str, location_c_str, |l| {
         let sun: &Sun = unsafe { &*sun_ptr };
         l.sun.insert(day.to_string(), sun.clone());
@@ -90,7 +90,7 @@ pub extern "C" fn add_sun_for_location(forecast_c_str: *const c_char, location_c
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn add_weather_for_location(forecast_c_str: *const c_char, location_c_str: *const c_char, wx_ptr: *const WxSingle, len: usize) {
+pub extern "C" fn forecast_repo_add_weather_for_location(forecast_c_str: *const c_char, location_c_str: *const c_char, wx_ptr: *const WxSingle, len: usize) {
     let wx_slice: &[WxSingle] = unsafe {
         if wx_ptr.is_null() {
             &[]
