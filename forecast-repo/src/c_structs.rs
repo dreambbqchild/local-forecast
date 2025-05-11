@@ -1,3 +1,5 @@
+use std::ffi::c_char;
+
 use serde::{Deserialize, Serialize};
 
 #[repr(C)]
@@ -34,4 +36,27 @@ pub struct Coords {
 pub struct Sun {
     pub rise: u64,
     pub set: u64
+}
+
+#[repr(C)]
+pub struct Moon {
+    pub age: f64,
+    pub name: *const c_char, 
+    pub emoji: *const c_char
+}
+
+#[repr(C)]
+pub struct LabeledSun {
+    pub day: i32,
+    pub sun: *const Sun
+}
+
+#[repr(C)]
+pub struct Location {
+    pub coords: *const Coords,
+    pub is_city: bool,
+    pub suns: *const LabeledSun,
+    pub suns_len: usize,
+    pub wx: *const WxSingle,
+    pub wx_len: usize
 }

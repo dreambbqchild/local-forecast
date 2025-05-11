@@ -59,6 +59,29 @@ impl Wx {
         self.wind_dir[at] = single.wind_dir;
         self.wind_spd[at] = single.wind_spd
     }
+
+    pub fn length(&self) -> usize {
+        self.dewpoint.len()
+    }
+
+    pub fn extract(&self, at: usize) -> WxSingle {
+        WxSingle { 
+            dewpoint: self.dewpoint[at],
+            gust: self.gust[at],
+            lightning: self.lightning[at],
+            new_precip: self.new_precip[at],
+            precip_rate: self.precip_rate[at],
+            precip_type: PrecipitationType::bits(&self.precip_type[at]),
+            pressure: self.pressure[at],
+            temperature: self.temperature[at],
+            total_cloud_cover: self.total_cloud_cover[at],
+            total_precip: self.total_precip[at],
+            total_snow: self.total_snow[at],
+            vis: self.vis[at],
+            wind_dir: self.wind_dir[at],
+            wind_spd: self.wind_spd[at]
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
