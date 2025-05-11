@@ -53,15 +53,16 @@ typedef struct {
 } Location;
 
 extern "C" {
-    void forecast_repo_init_forecast(const char *forecast);
-    void forecast_repo_add_forecast_start_time(const char *forecast, uint64_t forecastTime);
-    void forecast_repo_add_lunar_phase(const char *forecast, int32_t day, const Moon* moon);
-    void forecast_repo_init_location(const char *forecast, const char *location, bool isCity, const Coords *coords);
-    void forecast_repo_add_sun_for_location(const char *forecast, const char *location, int32_t day, const Sun *sun);
-    void forecast_repo_add_weather_for_location(const char *forecast, const char *location, const WxSingle *wx, size_t len);
+    bool forecast_repo_load_forecast(const char* forecast, const char* path);
+    bool forecast_repo_save_forecast(const char* forecast, const char* path);
 
-    size_t forecast_repo_get_forecast_length(const char *forecast);
-    uint64_t forecast_repo_get_forecast_time_at(const char *forecast, size_t index);
+    void forecast_repo_init_forecast(const char* forecast);
+    void forecast_repo_add_forecast_start_time(const char* forecast, uint64_t forecastTime);
+    void forecast_repo_add_lunar_phase(const char* forecast, int32_t day, const Moon* moon);
+    void forecast_repo_add_location(const char* forecast, const char* locationName, const Location* location);
+
+    size_t forecast_repo_get_forecast_length(const char* forecast);
+    uint64_t forecast_repo_get_forecast_time_at(const char* forecast, size_t index);
 
     typedef void (*MoonCallback)(uint32_t day, Moon moon);
     void forecast_repo_forecast_moon_on_day(const char* forecast, uint32_t day, MoonCallback callback); 
