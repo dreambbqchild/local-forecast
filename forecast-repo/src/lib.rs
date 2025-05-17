@@ -1,21 +1,21 @@
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
+use std::ops::DerefMut;
 use std::path::Path;
-use std::{collections::HashMap, ffi::CString};
+use std::collections::HashMap;
 use std::os::raw::c_char;
-use std::slice;
+use std::{ptr, slice};
 use std::sync::Mutex;
-use c_char_to_string::CCharToString;
+use interop::c_structs;
+use interop::string_tools::CCharToString;
+use wx_enums::moon_phases::MoonPhase;
 use once_cell::sync::Lazy;
 
-use c_structs::LabeledSun;
 use rust_structs::{Forecast, Location, Moon};
-use serde::de::value::Error;
 
-pub mod c_structs;
-pub mod c_char_to_string;
+pub mod interop;
 pub mod rust_structs;
-pub mod precipitation_type;
+pub mod wx_enums;
 
 static FORECAST_DATA: Lazy<Mutex<HashMap<String, Forecast>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
@@ -80,9 +80,7 @@ pub extern "C" fn forecast_repo_load_forecast(forecast_c_str: *const c_char, pat
             map.insert(forecast_str, forecast);
             true
         },
-        _ => {
-            false
-        }
+        _ => false 
     }
 }
 
@@ -111,11 +109,9 @@ pub extern "C" fn forecast_repo_add_lunar_phase(forecast_c_str: *const c_char, d
     with_forecast(forecast_c_str, |f| {
         let moon: &c_structs::Moon = unsafe { &*moon_ptr };
 
-        let age = moon.age;
-        let name = moon.name.to_string_safe();
-        let emoji = moon.emoji.to_string_safe();
+        let phase = MoonPhase::try_from(moon.phase).unwrap();
 
-        f.moon.insert(day.to_string(), Moon{ age, name, emoji });
+        f.moon.insert(day.to_string(), Moon{ phase });
     });
 }
 
@@ -123,17 +119,16 @@ pub extern "C" fn forecast_repo_add_lunar_phase(forecast_c_str: *const c_char, d
 pub extern "C" fn forecast_repo_add_location(forecast_c_str: *const c_char, location_c_str: *const c_char, location_ptr: *const c_structs::Location) {
     with_forecast_location(forecast_c_str, location_c_str, |l| {
         let location = unsafe{&*location_ptr};
-        let coords = unsafe{&*location.coords};
 
-        l.coords = coords.clone();
+        l.coords = location.coords.clone();
         l.is_city = location.is_city;
         
         let sun_slice = to_slice(location.suns, location.suns_len);
         let wx_slice = to_slice(location.wx, location.wx_len);
 
         for labeled_sun in sun_slice.iter() {
-            let sun = unsafe {&*labeled_sun.sun};
-            l.sun.insert(labeled_sun.day.to_string(), sun.clone());
+            let key = labeled_sun.day.to_string();
+            l.sun.insert(key, labeled_sun.sun.clone());
         }
 
         for (index, wx) in wx_slice.iter().enumerate() {
@@ -143,71 +138,21 @@ pub extern "C" fn forecast_repo_add_location(forecast_c_str: *const c_char, loca
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn forecast_repo_get_forecast_length(forecast_c_str: *const c_char) -> usize {
-    let mut result: usize = 0;
-    with_forecast(forecast_c_str, |f| {
-        result = f.forecast_times.len();
+pub extern "C" fn forecast_repo_get_forecast(forecast_c_str: *const c_char) -> *mut c_structs::Forecast {
+    let mut has_result = false;
+    let mut result= Box::<c_structs::Forecast>::new_uninit();
+    with_forecast(forecast_c_str, |f| {        
+        has_result = true;
+        result.write(c_structs::Forecast::from(f));
     });
 
-    result
+    if has_result { result.deref_mut().as_mut_ptr() } else { ptr::null_mut() }
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn forecast_repo_get_forecast_time_at(forecast_c_str: *const c_char, index: usize) -> u64 {
-    let mut result: u64 = 0;
-    with_forecast(forecast_c_str, |f| {
-        result = f.forecast_times[index];
-    });
-
-    result
-}
-
-pub type MoonCallback = extern "C" fn(day: i32, moon: c_structs::Moon);
-pub extern "C" fn forecast_repo_forecast_moon_on_day(forecast_c_str: *const c_char, day: i32, callback: MoonCallback) {
-    with_forecast(forecast_c_str, |f| {
-        match f.moon.get(&day.to_string()) {
-            Some(moon) => {
-                let name = CString::new(moon.name.as_str()).expect("Failed to create CString for name");
-                let emoji = CString::new(moon.emoji.as_str()).expect("Failed to create CString for emoji");
-
-                let c_moon = c_structs::Moon {
-                    age: moon.age,
-                    name: name.as_ptr(),
-                    emoji: emoji.as_ptr()
-                };
-
-                callback(day, c_moon);
-            },
-            None => {}
-        }
-    });
-}
-
-pub type LocationCallback = extern "C" fn(key: *const c_char, location: c_structs::Location);
-pub extern "C" fn forecast_repo_get_forecast_location(forecast_c_str: *const c_char, location_c_str: *const c_char, callback: LocationCallback) {
-    with_forecast_location(forecast_c_str, location_c_str, |l|{
-        let mut wx = Vec::new();
-        for index in 0..l.wx.length() {
-            wx.push(l.wx.extract(index));
-        }
-        
-        let mut suns = Vec::new();
-        for (day, sun) in l.sun.iter() {
-            suns.push(LabeledSun {
-                day: day.parse::<i32>().expect("To convert sun key to i32"),
-                sun: sun
-            });
-        }
-        
-        let location = c_structs::Location {
-            coords: &l.coords,
-            is_city: l.is_city,
-            wx: wx.as_ptr(),
-            suns: suns.as_ptr(),
-            suns_len: suns.len(),
-            wx_len: wx.len()
-        };
-
-        callback(location_c_str, location);
-    });
+pub extern "C" fn forecast_repo_free_forecast(forecast: *mut c_structs::Forecast) {
+    if forecast.is_null() {
+        return;
+    }
+    unsafe { drop(Box::from_raw(forecast)); }
 }

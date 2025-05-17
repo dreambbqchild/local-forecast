@@ -41,7 +41,7 @@ impl FromStr for PrecipitationType {
             RAIN => Ok(PrecipitationType::Rain),
             FREEZING_RAIN => Ok(PrecipitationType::FreezingRain),
             SNOW => Ok(PrecipitationType::Snow),
-            _ => return Ok(PrecipitationType::NoPrecipitation)
+            _ => Ok(PrecipitationType::NoPrecipitation)
         }
     }
 }
@@ -58,7 +58,7 @@ struct PrecipTypeVisitor;
 impl<'de> Visitor<'de> for PrecipTypeVisitor {
     type Value = PrecipitationType;
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a precipitation type string")
+        formatter.write_str("a PrecipitationType string")
     }
     fn visit_str<E>(self, value: &str) -> Result<PrecipitationType, E>
     where E: Error {

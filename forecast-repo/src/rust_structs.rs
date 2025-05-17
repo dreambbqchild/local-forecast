@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-use crate::{c_structs::{Coords, Sun, WxSingle}, precipitation_type::PrecipitationType};
+use crate::{c_structs::{Coords, Sun, WxSingle}, wx_enums::{moon_phases::MoonPhase, precipitation_type::PrecipitationType}};
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Wx {
     pub dewpoint: Vec<i16>,
@@ -24,8 +24,8 @@ pub struct Wx {
 }
 
 impl Wx {
-    pub fn new(size: usize) -> Wx {
-        Wx {
+    pub fn new(size: usize) -> Self {
+        Self {
             dewpoint: Vec::with_capacity(size),
             gust: Vec::with_capacity(size),
             lightning: Vec::with_capacity(size),
@@ -63,28 +63,9 @@ impl Wx {
     pub fn length(&self) -> usize {
         self.dewpoint.len()
     }
-
-    pub fn extract(&self, at: usize) -> WxSingle {
-        WxSingle { 
-            dewpoint: self.dewpoint[at],
-            gust: self.gust[at],
-            lightning: self.lightning[at],
-            new_precip: self.new_precip[at],
-            precip_rate: self.precip_rate[at],
-            precip_type: PrecipitationType::bits(&self.precip_type[at]),
-            pressure: self.pressure[at],
-            temperature: self.temperature[at],
-            total_cloud_cover: self.total_cloud_cover[at],
-            total_precip: self.total_precip[at],
-            total_snow: self.total_snow[at],
-            vis: self.vis[at],
-            wind_dir: self.wind_dir[at],
-            wind_spd: self.wind_spd[at]
-        }
-    }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Location {
     pub coords: Coords,
@@ -99,15 +80,13 @@ impl Location {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Moon {
-    pub age: f64,
-    pub emoji: String,
-    pub name: String
+    pub phase: MoonPhase
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Forecast {
     pub forecast_times: Vec<u64>,
@@ -116,7 +95,7 @@ pub struct Forecast {
 }
 
 impl Forecast {
-    pub fn new() -> Forecast {
-        Forecast { forecast_times: Vec::new(), locations: HashMap::new(), moon: HashMap::new() }
+    pub fn new() -> Self {
+        Self { forecast_times: Vec::new(), locations: HashMap::new(), moon: HashMap::new() }
     }
 }

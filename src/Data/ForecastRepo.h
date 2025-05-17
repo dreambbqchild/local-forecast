@@ -3,6 +3,17 @@
 #include <stdint.h>
 #include <cstddef>
 
+enum MoonPhase : uint8_t {
+    New,
+    WaxingCrescent,
+    FirstQuarter,
+    WaxingGibbous,
+    Full,
+    WaningGibbous,
+    LastQuarter,
+    WaningCrescent
+};
+
 typedef struct {
     int16_t dewpoint;
     int16_t gust;
@@ -38,13 +49,16 @@ typedef struct {
 } LabeledSun;
 
 typedef struct {
-    double age;
-    const char* name;
-    const char* emoji;
+    uint8_t phase;
 } Moon;
 
 typedef struct {
-    const Coords* coords;
+    int32_t day;
+    Moon moon;
+} LabeledMoon;
+
+typedef struct {
+    Coords coords;
     bool is_city;
     const LabeledSun* suns;
     size_t sunsLen;
@@ -52,21 +66,28 @@ typedef struct {
     size_t wx_len;
 } Location;
 
+typedef struct {
+    const char* key;
+    Location location;
+} LabeledLocation;
+
+typedef struct Forecast {
+    uint64_t forecast_times;
+    size_t forecast_times_len;
+    LabeledLocation* locations;
+    size_t locations_len;
+    LabeledMoon* moons;
+    size_t moons_len;
+} Forecast;
+
 extern "C" {
     bool forecast_repo_load_forecast(const char* forecast, const char* path);
     bool forecast_repo_save_forecast(const char* forecast, const char* path);
 
-    void forecast_repo_init_forecast(const char* forecast);
-    void forecast_repo_add_forecast_start_time(const char* forecast, uint64_t forecastTime);
+    void forecast_repo_init_forecast(const char* forecast, const uint64_t* forecastTimes, size_t forecastTimeLen);
     void forecast_repo_add_lunar_phase(const char* forecast, int32_t day, const Moon* moon);
     void forecast_repo_add_location(const char* forecast, const char* locationName, const Location* location);
 
-    size_t forecast_repo_get_forecast_length(const char* forecast);
-    uint64_t forecast_repo_get_forecast_time_at(const char* forecast, size_t index);
-
-    typedef void (*MoonCallback)(uint32_t day, Moon moon);
-    void forecast_repo_forecast_moon_on_day(const char* forecast, uint32_t day, MoonCallback callback); 
-
-    typedef void (*LocationCallback)(const char* key, Location location);
-    void forecast_repo_get_forecast_location(const char* forecast, const char* location, LocationCallback callback); 
+    Forecast* forecast_repo_get_forecast(const char* forecast);
+    void forecast_repo_free_forecast(Forecast* forecast);
 }

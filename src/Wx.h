@@ -1,7 +1,7 @@
 #pragma once
 #include "Calcs.h"
 
-enum PrecipitationType 
+enum PrecipitationType : uint8_t
 {
     NoPrecipitation = 0,
     Rain = 1 << 0,
@@ -9,8 +9,8 @@ enum PrecipitationType
     Snow = 1 << 2
 };
 
-inline PrecipitationType operator|(PrecipitationType a, PrecipitationType b) { return static_cast<PrecipitationType>(static_cast<int>(a) | static_cast<int>(b)); }
-inline PrecipitationType operator&(PrecipitationType a, PrecipitationType b) { return static_cast<PrecipitationType>(static_cast<int>(a) & static_cast<int>(b)); }
+inline PrecipitationType operator|(PrecipitationType a, PrecipitationType b) { return static_cast<PrecipitationType>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b)); }
+inline PrecipitationType operator&(PrecipitationType a, PrecipitationType b) { return static_cast<PrecipitationType>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b)); }
 inline PrecipitationType& operator |=(PrecipitationType& a, PrecipitationType b) { return a = a | b; }
 
 struct Wx 
