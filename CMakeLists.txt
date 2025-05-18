@@ -6,15 +6,6 @@ include(ExternalProject)
 
 set_directory_properties(PROPERTIES EP_PREFIX ${CMAKE_BINARY_DIR}/forecast-repo)
 
-ExternalProject_Add(
-    rust_forecast_repo
-    DOWNLOAD_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND cargo build COMMAND cargo build --release
-    BINARY_DIR "${CMAKE_SOURCE_DIR}/forecast-repo"
-    INSTALL_COMMAND ""
-    LOG_BUILD ON)
-
 include_directories(src)
 include_directories(/usr/local/include)
 
@@ -30,7 +21,20 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_HOST_SYSTEM_PROCESSOR STRE
     include_directories(/opt/homebrew/include)
 
     link_directories(/opt/homebrew/lib)
+
+    set(RUST_TARGET aarch64-apple-darwin)
+else()
+    set(RUST_TARGET x86_64-apple-darwin)
 endif()
+
+ExternalProject_Add(
+    rust_forecast_repo
+    DOWNLOAD_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND cargo build COMMAND cargo build --target=${RUST_TARGET}
+    BINARY_DIR "${CMAKE_SOURCE_DIR}/forecast-repo"
+    INSTALL_COMMAND ""
+    LOG_BUILD ON)
 
 link_directories(/usr/local/lib)
 
@@ -68,8 +72,7 @@ find_package(OpenMP)
 
 set_property (TARGET localforecast APPEND_STRING PROPERTY COMPILE_FLAGS "-fobjc-arc")
 target_link_libraries(localforecast
-    debug "${CMAKE_SOURCE_DIR}/forecast-repo/target/debug/libforecast_repo.a"
-    optimized "${CMAKE_SOURCE_DIR}/forecast-repo/target/release/libforecast_repo.a"
+    ${CMAKE_SOURCE_DIR}/forecast-repo/target/${RUST_TARGET}/debug/libforecast_repo.a
     avcodec
     avformat
     curl

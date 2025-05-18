@@ -8,19 +8,19 @@ use crate::{c_structs::{Coords, Sun, WxSingle}, wx_enums::{moon_phases::MoonPhas
 #[serde(rename_all = "camelCase")]
 pub struct Wx {
     pub dewpoint: Vec<i16>,
-    pub gust: Vec<i16>,
-    pub lightning: Vec<i16>,
+    pub gust: Vec<u16>,
+    pub lightning: Vec<u16>,
     pub new_precip: Vec<f64>,
     pub precip_rate: Vec<f64>,
     pub precip_type: Vec<PrecipitationType>,
     pub pressure: Vec<f64>,
     pub temperature: Vec<i16>,
-    pub total_cloud_cover: Vec<i16>,
+    pub total_cloud_cover: Vec<u16>,
     pub total_precip: Vec<f64>,
     pub total_snow: Vec<f64>,
-    pub vis: Vec<i16>,
-    pub wind_dir: Vec<i16>,
-    pub wind_spd: Vec<i16>
+    pub vis: Vec<u16>,
+    pub wind_dir: Vec<u16>,
+    pub wind_spd: Vec<u16>
 }
 
 impl Wx {

@@ -64,11 +64,11 @@ typedef struct {
     size_t sunsLen;
     const WxSingle* wx;
     size_t wx_len;
-} Location;
+} LocationRust;
 
 typedef struct {
     const char* key;
-    Location location;
+    LocationRust location;
 } LabeledLocation;
 
 typedef struct Forecast {
@@ -86,7 +86,7 @@ extern "C" {
 
     void forecast_repo_init_forecast(const char* forecast, const uint64_t* forecastTimes, size_t forecastTimeLen);
     void forecast_repo_add_lunar_phase(const char* forecast, int32_t day, const Moon* moon);
-    void forecast_repo_add_location(const char* forecast, const char* locationName, const Location* location);
+    void forecast_repo_add_location(const char* forecast, const char* locationName, const LocationRust* location);
 
     Forecast* forecast_repo_get_forecast(const char* forecast);
     void forecast_repo_free_forecast(Forecast* forecast);

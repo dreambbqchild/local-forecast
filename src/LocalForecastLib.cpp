@@ -13,6 +13,8 @@
 #include "Video/Encoder.h"
 #include "Wx.h"
 
+#include "Data/ForecastRepo.h"
+
 #include <glob.h>
 #include <string.h>
 
@@ -85,7 +87,11 @@ private:
         this->weatherModel = data.weatherModel;
 
         auto gribDataPath = forecastFilePath / string("gribdata.bin");
-        auto forecastJsonPath = forecastFilePath / string("forecast.json");        
+        auto forecastJsonPath = forecastFilePath / string("forecast.json");
+
+        // forecast_repo_load_forecast("test", forecastJsonPath.c_str());
+        // auto f = forecast_repo_get_forecast("test");
+        // forecast_repo_free_forecast(f);
 
         if(!useCache)
         {

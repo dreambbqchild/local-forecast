@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
-use std::ops::DerefMut;
 use std::path::Path;
 use std::collections::HashMap;
 use std::os::raw::c_char;
@@ -60,7 +59,7 @@ fn to_slice<'a, T>(ptr: *const T, len: usize) -> &'a [T] {
 fn load_forecast_from_file<P: AsRef<Path>>(path: P) -> std::io::Result<Forecast> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
-    let f = serde_json::from_reader(reader)?;
+    let f = serde_json::from_reader(reader).expect("to load the json");
     Ok(f)
 }
 
@@ -140,13 +139,13 @@ pub extern "C" fn forecast_repo_add_location(forecast_c_str: *const c_char, loca
 #[unsafe(no_mangle)]
 pub extern "C" fn forecast_repo_get_forecast(forecast_c_str: *const c_char) -> *mut c_structs::Forecast {
     let mut has_result = false;
-    let mut result= Box::<c_structs::Forecast>::new_uninit();
+    let mut result = c_structs::Forecast { forecast_times: ptr::null_mut(), forecast_times_len: 0, locations: ptr::null_mut(), locations_len: 0, moons: ptr::null_mut(), moons_len: 0 };
     with_forecast(forecast_c_str, |f| {        
         has_result = true;
-        result.write(c_structs::Forecast::from(f));
+        result = c_structs::Forecast::from(f);
     });
 
-    if has_result { result.deref_mut().as_mut_ptr() } else { ptr::null_mut() }
+    if has_result { Box::into_raw(Box::new(result)) } else { ptr::null_mut() }
 }
 
 #[unsafe(no_mangle)]
