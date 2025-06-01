@@ -445,6 +445,7 @@ private:
                     .lightning = static_cast<uint16_t>(result.lightning),
                     .newPrecipitation = max(0.0, result.newPrecipitation),
                     .precipitationRate = max(0.0, ScaledValueForTypeAndTemp(result.type, result.precipitationRate, result.temperature)),
+                    .precipitationType = result.type,
                     .pressure = result.pressure,
                     .temperature = static_cast<int16_t>(result.temperature),
                     .totalCloudCover = static_cast<uint16_t>(result.totalCloudCover),

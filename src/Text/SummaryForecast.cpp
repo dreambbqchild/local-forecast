@@ -80,7 +80,7 @@ private:
         if(!snowNamesAll.size())
             return;
 
-        result << "● ";
+        result << "• ";
         if(extremes.snowTotal >= 12)
             result << "Looks like you're going to be getting hit with a blizzard";
         else if(extremes.snowTotal >= 6)
@@ -99,12 +99,11 @@ private:
             return;
             
         if(extremes.rainTotal < 0.1)
-        {
-            result << "• Going to see a little rain or mist today " << JoinNames(rainNamesAll) << ". " << JoinNames(rainNamesExtreme) << " " << SingularPlural(rainNamesExtreme.size(), "is", "are") << " forecast to get the most with " << fixed << setprecision(2) << extremes.rainTotal << R"(".)" << endl;
-            return;
-        }
-
-        result << "• Going to be a rainy day for ya " << JoinNames(rainNamesAll) << ". " << JoinNames(rainNamesExtreme) << " " << SingularPlural(rainNamesExtreme.size(), "is", "are") << " forecast to get the most with " << fixed << setprecision(2) << extremes.rainTotal << R"(".)" << endl;
+            result << "• Going to see a little rain or mist today ";
+        else 
+            result << "• Going to be a rainy day for ya "; 
+            
+        result << JoinNames(rainNamesAll) << ". " << JoinNames(rainNamesExtreme) << " " << SingularPlural(rainNamesExtreme.size(), "is", "are") << " forecast to get the most with " << fixed << setprecision(2) << extremes.rainTotal << R"(".)" << endl;
     }
 
     string GetTextSummary(const char* moonEmoji, const char*  moonPhase, vector<SummaryData>& summaryDatum, string& lastDate)
@@ -171,9 +170,6 @@ public:
 
         for(auto& location : locations)
         {
-            if(location->IsCity())
-                continue;
-
             auto& summaryData = summaryDatum[index];
             location->CollectSummaryData(summaryData, maxRows);
             index++;
