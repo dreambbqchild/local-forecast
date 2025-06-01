@@ -1,16 +1,16 @@
 #pragma once
 
+#include "Data/ForecastRepo.h"
 #include "Drawing/DrawService.h"
 #include "ImageBase.h"
-#include <json/json.h>
 
 #include <filesystem>
 
 class PersonalForecasts : public ImageBase {
 private:
-    Json::Value& root;
+    IForecast* forecast;
 
 public:
-    PersonalForecasts(Json::Value& root) : root(root) {}
+    PersonalForecasts(IForecast* forecast) : forecast(forecast) {}
     void RenderAll(std::filesystem::path forecastDataOutputDir, int32_t maxRows = 24);
 };

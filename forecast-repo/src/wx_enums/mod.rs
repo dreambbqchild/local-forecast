@@ -1,2 +1,2 @@
-pub mod moon_phases;
+pub mod lunar_phases;
 pub mod precipitation_type;

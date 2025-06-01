@@ -1,5 +1,4 @@
 #include "Calcs.h"
-#include "Data/ForecastJsonExtension.h"
 #include "DateTime.h"
 #include "StringExtension.h"
 #include "SummaryForecast.h"
@@ -99,10 +98,16 @@ private:
         if(!rainNamesAll.size())
             return;
             
-        result << "● Going to be a rainy day for ya " << JoinNames(rainNamesAll) << ". " << JoinNames(rainNamesExtreme) << " " << SingularPlural(rainNamesExtreme.size(), "is", "are") << " forecast to get the most with " << fixed << setprecision(2) << extremes.rainTotal << R"(".)" << endl;
+        if(extremes.rainTotal < 0.1)
+        {
+            result << "• Going to see a little rain or mist today " << JoinNames(rainNamesAll) << ". " << JoinNames(rainNamesExtreme) << " " << SingularPlural(rainNamesExtreme.size(), "is", "are") << " forecast to get the most with " << fixed << setprecision(2) << extremes.rainTotal << R"(".)" << endl;
+            return;
+        }
+
+        result << "• Going to be a rainy day for ya " << JoinNames(rainNamesAll) << ". " << JoinNames(rainNamesExtreme) << " " << SingularPlural(rainNamesExtreme.size(), "is", "are") << " forecast to get the most with " << fixed << setprecision(2) << extremes.rainTotal << R"(".)" << endl;
     }
 
-    string GetTextSummary(string moonEmoji, string moonPhase, vector<SummaryData>& summaryDatum, string& lastDate)
+    string GetTextSummary(const char* moonEmoji, const char*  moonPhase, vector<SummaryData>& summaryDatum, string& lastDate)
     {
         SummaryData extremes;
         for(auto& summaryData : summaryDatum)
@@ -119,14 +124,14 @@ private:
         result << moonEmoji << " Today the moon will be in the " << moonPhase << " phase "<< endl
             << endl
             << "Between now and " << lastDate << ":" << endl
-            << "● " << JoinNames(highNames) << " can expect the highest high of " << extremes.high << "ºF." << Snide(R"( (Going to have to turn on the AC))", extremes.high <= 0) << endl
-            << "● " << JoinNames(lowNames) << " should see the lowest low of " << extremes.low << "ºF." << Snide(R"( (Yeah. That's a real "Low" there eh?))", extremes.low >= 70) << endl
-            << "● " << JoinNames(windNames) << " " << SingularPlural(windNames.size(), "has", "have") << " the best chance to experience the highest sustained wind at " << extremes.wind << "mph." << Snide(R"( (All together now: "It's WIMDY!"))", extremes.wind >= 30) << endl;
+            << "• " << JoinNames(highNames) << " can expect the highest high of " << extremes.high << "ºF." << Snide(R"( (Going to have to turn on the AC))", extremes.high <= 0) << endl
+            << "• " << JoinNames(lowNames) << " should see the lowest low of " << extremes.low << "ºF." << Snide(R"( (Yeah. That's a real "Low" there eh?))", extremes.low >= 70) << endl
+            << "• " << JoinNames(windNames) << " " << SingularPlural(windNames.size(), "has", "have") << " the best chance to experience the highest sustained wind at " << extremes.wind << "mph." << Snide(R"( (All together now: "🦊It WIMDY!!🦊"))", extremes.wind >= 30) << endl;
         
         result << endl;
         if(!TestDouble(extremes.iceTotal) && !TestDouble(extremes.snowTotal) && !TestDouble(extremes.rainTotal))
         {
-            result << "● No one is expected to see any precipitation.";
+            result << "• No one is expected to see any precipitation.";
             return result.str();
         }
 
@@ -137,13 +142,13 @@ private:
         return result.str();
     }
 
-    size_t CountPlaceLocations(Json::Value& root)
+    size_t CountPlaceLocations(vector<unique_ptr<ILocation>>& locations)
     {
         size_t placeLocationCount = 0;
 
-        for(auto& location : root["locations"])
+        for(auto& location : locations)
         {
-            if(location["isCity"].asBool())
+            if(location->IsCity())
                 continue;
 
             placeLocationCount++;
@@ -153,35 +158,36 @@ private:
     }
 
 public:
-    void Render(fs::path textForecastOutputPath, Json::Value& root, int32_t maxRows)
+    void Render(fs::path textForecastOutputPath, const unique_ptr<IForecast>& forecast, int32_t maxRows)
     {
         string lastDate;
         auto index = 0;
         vector<SummaryData> summaryDatum;
-        auto now = system_clock::from_time_t(root["now"].asInt64());
-        size_t placeLocationCount = CountPlaceLocations(root);
+        auto now = system_clock::from_time_t(forecast->GetNow());
+        auto locations = forecast->GetLocations(LocationMask::Homes);
+        size_t placeLocationCount = CountPlaceLocations(locations);
         
         summaryDatum.resize(static_cast<size_t>(placeLocationCount));
 
-        for(auto itr = root["locations"].begin(); itr != root["locations"].end(); itr++)
+        for(auto& location : locations)
         {
-            if((*itr)["isCity"].asBool())
+            if(location->IsCity())
                 continue;
 
             auto& summaryData = summaryDatum[index];
-            CollectSummaryDataForLocation(itr.name(), summaryData, root, *itr, maxRows);
+            location->CollectSummaryData(summaryData, maxRows);
             index++;
         }
 
-        GetForecastsFromNow(root, now, maxRows, [&](system_clock::time_point& forecastTime, int32_t forecastIndex)
+        forecast->GetForecastsFromNow(now, maxRows, [&](system_clock::time_point& forecastTime, int32_t forecastIndex)
         {
             lastDate = GetLongDateTime(forecastTime + 1h); //We want to the END of the resulting hour.
         });
 
         cout << "Rendering text forecast..." << endl;
         auto nowDay = ToLocalTm(now).tm_mday;
-        auto moon = root["moon"][to_string(nowDay)];
-        auto textForecast = GetTextSummary(moon["emoji"].asString(), moon["name"].asString(), summaryDatum, lastDate);
+        auto lunarPhase = forecast->GetLunarPhaseForDay(nowDay);
+        auto textForecast = GetTextSummary(Astronomy::GetLunarPhaseEmoji(lunarPhase), Astronomy::GetLunarPhaseLabel(lunarPhase), summaryDatum, lastDate);
         boost::algorithm::trim(textForecast);
         ofstream outStream(textForecastOutputPath);
         outStream << textForecast;

@@ -9,9 +9,10 @@
 using namespace std;
 using namespace chrono;
 
-struct FullMoon {
-    const char* emoji, 
-              * name;
+struct MoonRegistry {
+    LunarPhase phase;
+    const char* emoji;
+    const char* label;
 };
 
 static constexpr days LUNAR_MONTH_FULL_DAYS{29}; 
@@ -23,39 +24,32 @@ static constexpr seconds LUNAR_MONTH_TIMEPOINT = LUNAR_MONTH_FULL_DAYS + LUNAR_M
 static const double LUNAR_MONTH = 29.530588853;
 static const double RECENT_NEW_MOON = 2460261.893750; //November 13 2023 @ 9:27;
 
-static const char* NEW_LABEL = "New",
-  * WAXING_CRESCENT_LABEL = "Waxing Crescent",
-  * FIRST_QUARTER_LABEL = "First Quarter",
-  * WAXING_GIBBOUS_LABEL = "Waxing Gibbous",
-  * FULL_LABEL = "Full",
-  * WANING_GIBBOUS_LABEL = "Waning Gibbous",
-  * LAST_QUARTER_LABEL = "Last Quarter",
-  * WANING_CRESCENT_LABEL = "Waning Crescent";
-
 //For Northern Hemisphere
-static const char* NEW_EMOJI = "🌑",
-    * WAXING_CRESCENT_EMOJI = "🌒",
-    * FIRST_QUARTER_EMOJI = "🌓",
-    * WAXING_GIBBOUS_EMOJI = "🌔",
-    * FULL_EMOJI = "🌕",
-    * WANING_GIBBOUS_EMOJI = "🌖",
-    * LAST_QUARTER_EMOJI = "🌗",
-    * WANING_CRESCENT_EMOJI = "🌘";
-
-static FullMoon FULL_MOONS[] = {
-    {  "🐺", "Wolf" },
-    {  "❄️", "Snow" },
-    {  "🪱", "Worm" },
-    {  "🌸", "Pink" },
-    {  "🌼", "Flower" },
-    {  "🍓", "Strawberry" },
-    {  "🦌", "Buck" },
-    {  "🐟", "Sturgeon" },
-    {  "🌽", "Corn" },
-    {  "🏹", "Hunter" },
-    {  "🦫", "Beaver" },
-    {  "🥶", "Cold" }
+static MoonRegistry MOONS[] = {
+    { LunarPhase::New, "🌑", "New" },
+    { LunarPhase::WaxingCrescent, "🌒", "Waxing Crescent" },
+    { LunarPhase::FirstQuarter, "🌓", "First Quarter" },
+    { LunarPhase::WaxingGibbous, "🌔", "Waxing Gibbous" },
+    { LunarPhase::WolfMoon, "🌕🐺", "Wolf Moon" },
+    { LunarPhase::SnowMoon, "🌕❄️", "Snow Moon" },
+    { LunarPhase::WormMoon, "🌕🪱", "Worm Moon" },
+    { LunarPhase::PinkMoon, "🌕🌸", "Pink Moon" },
+    { LunarPhase::FlowerMoon, "🌕🌼", "Flower Moon" },
+    { LunarPhase::StrawberryMoon, "🌕🍓", "Strawberry Moon" },
+    { LunarPhase::BuckMoon, "🌕🦌", "Buck Moon" },
+    { LunarPhase::SturgeonMoon, "🌕🐟", "Sturgeon Moon" },
+    { LunarPhase::CornMoon, "🌕🌽", "Corn Moon" },
+    { LunarPhase::HunterMoon, "🌕🏹", "Hunter Moon" },
+    { LunarPhase::BeaverMoon, "🌕🦫", "Beaver Moon" },
+    { LunarPhase::ColdMoon, "🌕🥶", "Cold Moon" },
+    { LunarPhase::BlueMoon, "🌕🔵", "Blue Moon" },
+    { LunarPhase::HarvestMoon, "🌕🌾", "Harvest Moon" },
+    { LunarPhase::WaningGibbous, "🌖", "Waning Gibbous" },
+    { LunarPhase::LastQuarter, "🌗", "Last Quarter" },
+    { LunarPhase::WaningCrescent, "🌘", "Waning Crescent" }
 };
+
+const int32_t FULL_MOONS_OFFSET = LunarPhase::WolfMoon;
 
 void GetHourMinute(double value, tm& tm)
 {
@@ -156,19 +150,15 @@ bool IsBlueMoon(year utcYear, month utcMonth)
     return firstFull.tm_mon == secondFull.tm_mon;
 }
 
-LunarPhase FullMoonDetails(double lunarAge, year utcYear, month utcMonth, day utcDay)
+LunarPhase FullMoonPhase(double lunarAge, year utcYear, month utcMonth, day utcDay)
 {
-    auto fullMoon = FULL_MOONS[static_cast<unsigned>(utcMonth) - 1];
-
     stringstream nameBuilder;
     if(IsBlueMoon(utcYear, utcMonth))
-        nameBuilder << "Blue";
+        return LunarPhase::BlueMoon;
     else if(IsKnownHarvestMoon(utcYear, utcMonth, utcDay))
-        nameBuilder << "Harvest";
-    else
-        nameBuilder << FULL_LABEL << " " << fullMoon.name;
-    
-    return {lunarAge, nameBuilder.str(), fullMoon.emoji + string(FULL_EMOJI)};
+        return LunarPhase::HarvestMoon;
+ 
+    return MOONS[FULL_MOONS_OFFSET + static_cast<unsigned>(utcMonth) - 1].phase;
 }
 
 LunarPhase Astronomy::GetLunarPhase(system_clock::time_point timePoint)
@@ -184,21 +174,31 @@ LunarPhase Astronomy::GetLunarPhase(system_clock::time_point timePoint)
     auto nextAgePercent = CalcLunarAgePercent(CalcLunarAge(utcTimePoint + days(1)));
 
     if(agePercent > 0.9 && nextAgePercent < 0.1)
-        return { lunarAge, NEW_LABEL, NEW_EMOJI };
+        return LunarPhase::New;
     else if (IsBetween(agePercent, 0.75, nextAgePercent))
-        return { lunarAge, LAST_QUARTER_LABEL, LAST_QUARTER_EMOJI };
+        return LunarPhase::LastQuarter;
     else if (IsBetween(agePercent, 0.5, nextAgePercent))
     {
         auto time = ToUTCTm(utcTimePoint);
         ToYearMonthDay(time, utcYear, utcMonth, utcDay)
-        return FullMoonDetails(lunarAge, utcYear, utcMonth, utcDay);
+        return FullMoonPhase(lunarAge, utcYear, utcMonth, utcDay);
     }
     else if (IsBetween(agePercent, 0.25, nextAgePercent))
-        return { lunarAge, FIRST_QUARTER_LABEL, FIRST_QUARTER_EMOJI };
+        return LunarPhase::FirstQuarter;
     
-    if (agePercent < 0.25) return { lunarAge, WAXING_CRESCENT_LABEL, WAXING_CRESCENT_EMOJI };
-    else if (agePercent < 0.5) return { lunarAge, WAXING_GIBBOUS_LABEL, WAXING_GIBBOUS_EMOJI };
-    else if (agePercent < 0.75) return { lunarAge, WANING_GIBBOUS_LABEL, WANING_GIBBOUS_EMOJI };
+    if (agePercent < 0.25) return LunarPhase::WaxingCrescent;
+    else if (agePercent < 0.5) return LunarPhase::WaxingGibbous;
+    else if (agePercent < 0.75) return LunarPhase::WaningGibbous;
     
-    return { lunarAge, WANING_CRESCENT_LABEL, WANING_CRESCENT_EMOJI };
+    return LunarPhase::WaningCrescent;
+}
+
+const char* Astronomy::GetLunarPhaseEmoji(LunarPhase lunarPhase)
+{
+    return MOONS[lunarPhase].emoji;
+}
+
+const char* Astronomy::GetLunarPhaseLabel(LunarPhase lunarPhase)
+{
+    return MOONS[lunarPhase].label;
 }

@@ -3,7 +3,6 @@
 #include "Geography/Geo.h"
 #include "Grib/GribData.h"
 
-#include <json/json.h>
 #include <filesystem>
 
 class IWeatherMaps
@@ -13,4 +12,4 @@ public:
     virtual ~IWeatherMaps() = default;
 };
 
-IWeatherMaps* AllocWeatherMaps(Json::Value& root, const std::unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const std::string& mapBackgroundFile);
+IWeatherMaps* AllocWeatherMaps(const std::unique_ptr<IForecast>&, const std::unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const std::string& mapBackgroundFile);

@@ -1,19 +1,19 @@
 #pragma once
 
+#include "Data/ForecastRepo.h"
 #include "Geography/Geo.h"
 #include "Grib.h"
 #include "GribData.h"
 #include "Wx.h"
 
 #include <chrono>
-#include <json/json.h>
 #include <string>
 #include <vector>
 
 class IGribReader
 {
 public:
-    virtual void CollectData(Json::Value& root, std::unique_ptr<GribData>& gribData) = 0;
+    virtual void CollectData(std::unique_ptr<IForecastRepo>& forecastRepo, std::unique_ptr<GribData>& gribData) = 0;
     virtual ~IGribReader() = default;
 };
 

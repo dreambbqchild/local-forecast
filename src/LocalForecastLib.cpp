@@ -1,7 +1,7 @@
 #include "Characters.h"
 #include "HttpClient.h"
-#include "Data/ForecastJsonExtension.h"
 #include "DateTime.h"
+#include "Data/ForecastRepo.h"
 #include "Drawing/ForecastImages/PersonalForecasts.h"
 #include "Drawing/ForecastImages/RegionalForecast.h"
 #include "Drawing/ForecastImages/WeatherMaps.h"
@@ -9,11 +9,10 @@
 #include "Geography/Geo.h"
 #include "Grib/GribDownloader.h"
 #include "Grib/GribReader.h"
+#include "NumberFormat.h"
 #include "Text/SummaryForecast.h"
 #include "Video/Encoder.h"
 #include "Wx.h"
-
-#include "Data/ForecastRepo.h"
 
 #include <glob.h>
 #include <string.h>
@@ -39,36 +38,10 @@ struct ForecastData {
 
 #define HasFlag(f, t) ((f & t) == f)
 
-inline void ClearFlag(RenderTargets flag, RenderTargets& from) { from = (RenderTargets)(~flag & from);  }
-
-void RenderRegionalForecastPaths(const SelectedRegion& selectedRegion, fs::path& pathToJson, fs::path& pathToPng)
-{
-    fs::path openweatherPath = fs::path("forecasts") / selectedRegion.GetOutputFolder();
-    pathToJson = openweatherPath / string("openweather.json");
-    pathToPng = openweatherPath /  string("openweather.png");
-}
-
-void RenderRegionalForecast(const SelectedRegion& selectedRegion, const fs::path& pathToJson, const fs::path& pathToPng)
-{
-    RegionalForecast regionalForecast;
-    regionalForecast.Render(selectedRegion, pathToJson, pathToPng);
-}
-
-ForecastData ForecastDataFromDownloader(GribDownloader &downloader)
-{
-    return {
-        downloader.GetFilePathTemplate(),
-        downloader.GetForecastStartTime(),
-        downloader.GetWeatherModel(),
-        downloader.GetMaxGribIndex(),
-        downloader.GetSkipToGribNumber()
-    };
-}
-
 class LocalForecastRunner
 {
 private:
-    Json::Value root;
+    unique_ptr<IForecast> forecast;
     unique_ptr<GribData> gribData;
     
     WeatherModel weatherModel; //Is set in ProcessGribData.
@@ -79,37 +52,43 @@ private:
     fs::path pathToRegionalForecastJson;
     fs::path pathToRegionalForecastPng;
 
-    SelectedRegion selectedRegion;
+    const SelectedRegion selectedRegion;
     GeographicCalcs geoCalcs;
+
+    inline void ClearFlag(RenderTargets flag, RenderTargets& from) { from = (RenderTargets)(~flag & from);  }
+
+    static ForecastData ForecastDataFromDownloader(GribDownloader &downloader)
+    {
+        return {
+            downloader.GetFilePathTemplate(),
+            downloader.GetForecastStartTime(),
+            downloader.GetWeatherModel(),
+            downloader.GetMaxGribIndex(),
+            downloader.GetSkipToGribNumber()
+        };
+    }
 
     void ProcessGribData(const ForecastData& data, bool useCache)
     {
+        unique_ptr<IForecastRepo> forecastRepo;
+
         this->weatherModel = data.weatherModel;
+        auto forecastKey = this->weatherModel == WeatherModel::HRRR ? "hrrr" : "gfs";
 
         auto gribDataPath = forecastFilePath / string("gribdata.bin");
-        auto forecastJsonPath = forecastFilePath / string("forecast.json");
-
-        // forecast_repo_load_forecast("test", forecastJsonPath.c_str());
-        // auto f = forecast_repo_get_forecast("test");
-        // forecast_repo_free_forecast(f);
+        auto forecastJsonPath = forecastFilePath / string("forecast.json");        
 
         if(!useCache)
         {
             if(!std::filesystem::exists(forecastFilePath))
                 std::filesystem::create_directories(forecastFilePath);
 
+            forecastRepo = unique_ptr<IForecastRepo>(InitForecastRepo(forecastKey));
             unique_ptr<IGribReader> gribReader(AllocGribReader(data.gribFileTemplate, selectedRegion, data.weatherModel, system_clock::from_time_t(data.forecastStart), data.skipToGribNumber, data.maxGribIndex, geoCalcs));
-            gribReader->CollectData(root, gribData);
+            gribReader->CollectData(forecastRepo, gribData);
 
             cout << "Saving " << forecastFilePath << "..." << endl;
-            Json::StreamWriterBuilder builder;
-            builder["indentation"] = "";
-            const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());    
-
-            fstream forecastJson;
-            forecastJson.open(forecastJsonPath, fstream::out | fstream::trunc);
-            writer->write(root, &forecastJson);
-            forecastJson.close();
+            forecastRepo->Save(forecastJsonPath.c_str());
 
             cout << "Saving " << gribDataPath <<  "..." << endl;
             gribData->Save(gribDataPath);
@@ -117,29 +96,26 @@ private:
         else
         {
             cout << "Loading " << forecastJsonPath << "..." << endl;
-            ifstream forecastJson;
-            forecastJson.open(forecastJsonPath);
-            forecastJson >> root;
-            forecastJson.close();
+            forecastRepo = unique_ptr<IForecastRepo>(LoadForecastRepo(forecastKey, forecastJsonPath.c_str()));
 
             cout << "Loading " << gribDataPath << "..." << endl;
             gribData = unique_ptr<GribData>(GribData::Load(gribDataPath));
         }
 
-        auto now = system_clock::now();
-        root["now"] = Json::Value::Int64(system_clock::to_time_t(now));
+        forecast = unique_ptr<IForecast>(forecastRepo->GetForecast());
+        forecast->SetNow(system_clock::to_time_t(system_clock::now()));
     }
 
     void RenderForecastAssets(RenderTargets renderTargets)
     {
         if(HasFlag(RegionalForecastRenderTarget, renderTargets))
-            RenderRegionalForecast(selectedRegion, pathToRegionalForecastJson, pathToRegionalForecastPng);
+            selectedRegion.RenderRegionalForecast(pathToRegionalForecastJson, pathToRegionalForecastPng);
         else
             cout << "Skipping regional forecast." << endl;
 
         if(HasFlag(WeatherMapsRenderTarget, renderTargets))
         {
-            auto weatherMaps = unique_ptr<IWeatherMaps>(AllocWeatherMaps(root, gribData, geoCalcs, selectedRegion.GetMapBackgroundFileName()));
+            auto weatherMaps = unique_ptr<IWeatherMaps>(AllocWeatherMaps(forecast, gribData, geoCalcs, selectedRegion.GetMapBackgroundFileName()));
             weatherMaps->GenerateForecastMaps(forecastFilePath);
         }
         else
@@ -147,7 +123,7 @@ private:
 
         if(HasFlag(PersonalForecastsRenderTarget, renderTargets))
         {
-            PersonalForecasts personalForecasts(root);
+            PersonalForecasts personalForecasts(forecast.get());
             personalForecasts.RenderAll(forecastFilePath, weatherModel == WeatherModel::GFS ? INT32_MAX : 24);
         }
 
@@ -160,7 +136,7 @@ private:
         if(HasFlag(TextForecastRenderTarget, renderTargets))
         {
             auto textSummary = unique_ptr<ISummaryForecast>(AllocSummaryForecast());
-            textSummary->Render(textFilePath, root);
+            textSummary->Render(textFilePath, forecast);
         }
         else
             cout << "Skipping text forecast." << endl;
@@ -203,7 +179,7 @@ private:
             return;
         }
 
-        auto now = system_clock::from_time_t(root["now"].asInt64());
+        auto now = system_clock::from_time_t(forecast->GetNow());
         auto encoder = unique_ptr<IEncoder>(AllocEncoder(videoFilePath));    
         encoder->UseAudioFile(SelectAudioFile(now));
         encoder->EncodeImagesFittingPattern(pathToRegionalForecastPng, 10);
@@ -215,10 +191,10 @@ private:
 
         for(auto& map : maps)
         {
-            cout << "Rendering " << map <<" frames..." << endl;
-            GetForecastsFromNow(root, now, INT32_MAX, [&](system_clock::time_point& forecastTime, int32_t forecastIndex)
+            cout << "Rendering " << map << " frames..." << endl;
+            forecast->GetForecastsFromNow(now, UINT32_MAX, [&](system_clock::time_point& forecastTime, int32_t forecastIndex)
             {
-                encoder->EncodeImagesFittingPattern(forecastFilePath / (map + string("-") + root["forecastSuffixes"][forecastIndex].asString() + ".png"), 2);
+                encoder->EncodeImagesFittingPattern(forecastFilePath / (map + ToStringWithPad(3, '0', forecastIndex) + ".png"), 2);
             });
         }
 
@@ -232,6 +208,7 @@ private:
 
 public:
     LocalForecastRunner(WeatherModel weatherModel, const SelectedRegion& selectedRegion) :
+        forecast(nullptr),
         gribFilePath(fs::path("data") / WeatherModelToFilePath(weatherModel)),
         forecastFilePath(fs::path("forecasts") / selectedRegion.GetOutputFolder() / WeatherModelToFilePath(weatherModel)),
         weatherModel(weatherModel),
@@ -240,7 +217,8 @@ public:
         {
             videoFilePath = forecastFilePath / string("forecast.mp4");
             textFilePath = forecastFilePath / string("forecast.txt");
-            RenderRegionalForecastPaths(selectedRegion, pathToRegionalForecastJson, pathToRegionalForecastPng);
+
+            selectedRegion.RenderRegionalForecastPaths(pathToRegionalForecastJson, pathToRegionalForecastPng);
         }
 
     inline const fs::path& GetVideoFilePath() { return videoFilePath; }
@@ -307,11 +285,11 @@ extern "C"
         fs::path pathToJson, pathToPng;
         SelectedRegion selectedRegion(WeatherModel::NoWeatherModel, regionKey);
 
-        RenderRegionalForecastPaths(selectedRegion, pathToJson, pathToPng);
+        selectedRegion.RenderRegionalForecastPaths(pathToJson, pathToPng);
 
         HandleBuffer(pathToPng, pathToPngBuffer);
         
-        RenderRegionalForecast(selectedRegion, pathToJson, pathToPng);
+        selectedRegion.RenderRegionalForecast(pathToJson, pathToPng);
     }
 
     void LocalForecastLibRenderLocalForecast(const char* regionKey, enum WxModel wxModel, enum RenderTargets renderTargets, uint16_t skipToGribNumber, uint16_t maxGribIndex, char** pathToVideoBuffer, char** pathToTextBuffer)

@@ -1,17 +1,12 @@
 #pragma once
 
 #include "Grib/Grib.h"
+#include "Data/ForecastRepo.h"
 
 #include <boost/functional/hash.hpp>
 #include <stdint.h>
 #include <string>
 #include <vector>
-
-struct Location {
-    std::string name;
-    double lat = 0, lon = 0;
-    bool isCity = false;
-};
 
 struct GeoCoord {
     double lat, lon;
@@ -42,16 +37,18 @@ struct GeoBounds {
 
 class SelectedRegion {
 private:
-    const Location empty;
     std::string mapBackground;
     std::string outputFolder;
     GeoCoord regionalCoord;
     GeoBounds regionBoundsWithOverflow, renderableRegionBounds, forecastAreaBounds;
 
-    std::vector<Location> allLocations;
+    std::vector<std::tuple<std::string, Location>> allLocations;
 
 public:
     SelectedRegion(WeatherModel wxModel, std::string key);
+
+    void RenderRegionalForecastPaths(std::filesystem::path& pathToJson, std::filesystem::path& pathToPng) const;
+    void RenderRegionalForecast(const std::filesystem::path& pathToJson, const std::filesystem::path& pathToPng) const;
 
     inline const std::string& GetMapBackgroundFileName() const {return mapBackground; }
     inline const GeoCoord& GetRegionalCoord() const { return regionalCoord; }
@@ -60,5 +57,5 @@ public:
     inline const GeoBounds& GetForecastAreaBounds() const { return forecastAreaBounds; }
     inline const std::string& GetOutputFolder() const { return outputFolder; }
 
-    inline const std::vector<Location>& GetAllLocations() const { return allLocations; }
+    inline const std::vector<std::tuple<std::string, Location>>& GetAllLocations() const { return allLocations; }
 };

@@ -1,5 +1,6 @@
 #pragma once
 #include <filesystem>
+#include "Wx.h"
 
 namespace Emoji {
     const char * const cityscape = "cityscape",
@@ -49,18 +50,18 @@ namespace Emoji {
     const size_t EmojiCount = sizeof(All) / sizeof(const char*);
 
     inline std::string Path(const char* emojiName) { return std::string("emoji") + std::filesystem::path::preferred_separator + std::string(emojiName) + ".png"; }
-    static const char* GetSkyEmoji(int32_t totalCoudCover, bool lightning, std::string precipType, double precipRate)
+    static const char* GetSkyEmoji(int32_t totalCoudCover, bool lightning, PrecipitationType precipType, double precipRate)
     {   
         if(!precipRate && lightning)
             return Emoji::cloud_with_lightning;
         else if(precipRate && lightning)
             return Emoji::cloud_with_lightning_and_rain;
-        else if(precipType.length()) {
-            if(precipType == "ice")
+        else if(precipType != PrecipitationType::NoPrecipitation) {
+            if(precipType == PrecipitationType::FreezingRain)
                 return Emoji::ice;
-            else if(precipType == "rain")
+            else if(precipType == PrecipitationType::Rain)
                 return Emoji::cloud_with_rain;
-            else if(precipType == "snow")
+            else if(precipType == PrecipitationType::Snow)
                 return Emoji::cloud_with_snow;
 
             return Emoji::red_question_mark;
@@ -77,13 +78,11 @@ namespace Emoji {
         return Emoji::cloud;
     }
 
-    inline std::string GetSkyEmojiPath(int32_t totalCoudCover, bool lightning, std::string precipType, double precipRate)
+    inline std::string GetSkyEmojiPath(int32_t totalCoudCover, bool lightning, PrecipitationType precipType, double precipRate)
     {
         return Path(GetSkyEmoji(totalCoudCover, lightning, precipType, precipRate));
     }
 };
-
-#define GetSkyEmojiPathFromWxJson(wx, i) Emoji::GetSkyEmojiPath(wx["totalCloudCover"][i].asInt(), wx["lightning"][i].asInt() != 0, wx["precipType"][i].asString(), wx["precipRate"][i].asDouble())
 
 namespace Unicode {
     const char* const arrows[] = {"↓", "↙", "←", "↖", "↑", "↗", "→", "↘"};

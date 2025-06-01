@@ -73,11 +73,11 @@ inline double LocalForecast(const Vector2d& v, const LocalForecastPayload& paylo
 class GribReader : public IGribReader
 {
 private:
-    uint16_t skipToGribNumber, maxGribIndex;
+    uint16_t skipToGribNumber, maxGribIndex, totalDays;
     int32_t forecastTimeIndex = 0;
     string gribPathTemplate;
     system_clock::time_point forecastStartTime;
-    vector<Location> locations;
+    vector<tuple<string, Location>> locations;
     GeographicCalcs geoCalcs;
 
     WeatherModel wxModel;
@@ -90,9 +90,6 @@ private:
     vector<unordered_map<int32_t, vector<FieldData>>> rawFieldData;
 
     GeoBounds geoBounds;
-
-    Json::Value jForecastTimes;
-    Json::Value jLunarPhase;
 
     inline bool IsInArea(const GeoBounds& geoBounds, const GeoCoord& coord) { return IsBetween(geoBounds.bottomLat, coord.lat, geoBounds.topLat) && IsBetween(geoBounds.leftLon, coord.lon, geoBounds.rightLon); }
 
@@ -237,13 +234,14 @@ private:
         BuildQuads(columns, validIndexes);
     }
 
-    void Initalize()
+    void Initalize(unique_ptr<IForecastRepo>& forecastRepo)
     {
         int32_t lastDay = INT32_MAX;
         cout << "Reading in grib files..." << endl;
         //Read in files one at a time because that's the way it has to be due to eccodes.
         FOR_FORECASTS_IN_RANGE(i)
         {
+            cout << "Processing grib file index " << i << "..." << endl;
             string path(gribPathTemplate.length() + 2, '\0');
             snprintf((char*)path.c_str(), gribPathTemplate.length() + 2, gribPathTemplate.c_str(), i);
             
@@ -251,20 +249,18 @@ private:
                 continue;
 
             auto forecastAtPoint = forecastStartTime + hours(i);
-            jForecastTimes[forecastTimeIndex++] = Json::Value::Int64(chrono::system_clock::to_time_t(forecastAtPoint));
             localForecastTimes.push_back(forecastAtPoint);
+
+            forecastRepo->AddForecastStartTime(forecastAtPoint);
 
             auto currentDay = ToLocalTm(forecastAtPoint).tm_mday;
             if(currentDay != lastDay)
             {
                 cout << "Adding Lunar Information for " << GetShortDate(forecastAtPoint) << "..." << endl;
-                Json::Value jPhase;
                 auto lunarPhase = Astronomy::GetLunarPhase(forecastAtPoint);
-                jPhase["age"] = lunarPhase.age;
-                jPhase["name"] = lunarPhase.name;
-                jPhase["emoji"] = lunarPhase.emoji;
+                forecastRepo->AddLunarPhase(currentDay, lunarPhase);
                 lastDay = currentDay;
-                jLunarPhase[to_string(lastDay)] = jPhase;
+                totalDays++;
             }
         }
     }
@@ -361,54 +357,54 @@ private:
         return new GribData(validIndexes, quads, geoCoordLookup, wxResults);
     }
 
-    void GenerateForecastJson(std::unique_ptr<GribData>& gribData, Json::Value& root)
+    void GenerateForecast(unique_ptr<GribData>& gribData, unique_ptr<IForecastRepo>& forecastRepo)
     {
-        Json::Value jLocations;
         auto geoCoords = gribData->GetGeoCoords();
         auto pointSet = unique_ptr<IGeoPointSet>(AllocGeoPointSet(geoCoords, geoCalcs));        
         cout << "Compiling JSON..." << endl;
 
         {
-            Json::Value forecastSuffixes;
             auto forecastIndex = 0;
             for(int32_t i = 0; i < gribData->GetNumberOfFiles(); i++)
             {
                 auto imgSuffix = ToStringWithPad(3, '0', i);
-                forecastSuffixes[forecastIndex++] = imgSuffix;
             }
-
-            root["forecastSuffixes"] = forecastSuffixes;
         }
 
         #pragma omp parallel for
-        for(auto& location : locations)
+        for(auto& kvp : locations)
         {
-            GeoCoordPoint nearPoints[4] = {0};        
-            Json::Value jLocation, jCoords, jWx, jSunriseSunset, dewpoint, precipitationRate, precipitationType, gust, lightning, newPrecipitation, pressure, temperature, totalCloudCover, totalPrecipitation, totalSnow, visibility, windDirection, windSpeed;
+            auto locationKey = get<0>(kvp);
+            auto location = get<1>(kvp);
+
+            GeoCoordPoint nearPoints[4] = {0};
             Wx lastResult = {};
-                    
-            auto homeCoords = geoCalcs.FindXY({location.lat, location.lon});
-            jCoords["x"] = static_cast<uint16_t>(round(homeCoords.x)); 
-            jCoords["y"] = static_cast<uint16_t>(round(homeCoords.y));
-            jCoords["lat"] = location.lat;
-            jCoords["lon"] = location.lon;
+
+            auto homeCoords = geoCalcs.FindXY({location.coords.lat, location.coords.lon});
+            location.coords.x = static_cast<uint16_t>(round(homeCoords.x)); 
+            location.coords.y = static_cast<uint16_t>(round(homeCoords.y));
 
             pointSet->GetBoundingBox(location, nearPoints);
+            location.wxLen = gribData->GetNumberOfFiles();
+            location.wx = static_cast<WxSingle*>(calloc(location.wxLen, sizeof(WxSingle)));
+            location.sunsLen = totalDays;
+            location.suns = static_cast<LabeledSun*>(calloc(location.sunsLen, sizeof(LabeledSun)));
 
-            for(int32_t forecastIndex = 0; forecastIndex < gribData->GetNumberOfFiles(); forecastIndex++)
+            auto sunIndex = -1;
+            for(int32_t forecastIndex = 0; forecastIndex < location.wxLen; forecastIndex++)
             {
                 auto forecastTime = localForecastTimes[forecastIndex];
                 auto currentDay = ToLocalTm(forecastTime).tm_mday;
-                if(!jSunriseSunset[to_string(currentDay)])
+                if(sunIndex == -1 || location.suns[sunIndex].day != currentDay)
                 {
-                    Json::Value jRiseSetValues;
                     #pragma omp critical
-                    cout << "Adding Sunrise/Sunset info for " << location.name << " on " << GetShortDate(forecastTime) << endl;
-                    auto sunriseSunset = Astronomy::GetSunRiseSunset(location.lat, location.lon, forecastTime);
-                    jRiseSetValues["rise"] = Json::Value::Int64(system_clock::to_time_t(sunriseSunset.rise));
-                    jRiseSetValues["set"] = Json::Value::Int64(system_clock::to_time_t(sunriseSunset.set));
+                    cout << "Adding Sunrise/Sunset info for " << locationKey << " on " << GetShortDate(forecastTime) << endl;        
 
-                    jSunriseSunset[to_string(currentDay)] = jRiseSetValues;
+                    auto labeledSun = &location.suns[++sunIndex];
+                    labeledSun->day = currentDay;                                
+                    auto sunriseSunset = Astronomy::GetSunRiseSunset(location.coords.lat, location.coords.lon, forecastTime);
+                    labeledSun->sun.rise = system_clock::to_time_t(sunriseSunset.rise);
+                    labeledSun->sun.set = system_clock::to_time_t(sunriseSunset.set);
                 }
 
                 Wx boundsWx[4], result;
@@ -420,25 +416,13 @@ private:
                 }
                 
                 if((typesSeen & PrecipitationType::FreezingRain) == PrecipitationType::FreezingRain)
-                {
                     result.type = PrecipitationType::FreezingRain;
-                    precipitationType[forecastIndex] = "ice";
-                }
                 else if((typesSeen & PrecipitationType::Snow) == PrecipitationType::Snow)
-                {
                     result.type = PrecipitationType::Snow;
-                    precipitationType[forecastIndex] = "snow";
-                }
                 else if((typesSeen & PrecipitationType::Rain) == PrecipitationType::Rain)
-                {
                     result.type = PrecipitationType::Rain;
-                    precipitationType[forecastIndex] = "rain";
-                }
                 else
-                {
                     result.type = PrecipitationType::NoPrecipitation;
-                    precipitationType[forecastIndex] = "";
-                }
 
                 LocalForecast(dewpoint);
                 LocalForecast(precipitationRate);
@@ -455,54 +439,34 @@ private:
                 LocalForecast(windV);
                 LocalForecast(windSpeed);
 
-                dewpoint[forecastIndex] = static_cast<int16_t>(result.dewpoint);
-                gust[forecastIndex] = static_cast<uint16_t>(result.gust);
-                lightning[forecastIndex] = static_cast<uint16_t>(result.lightning);
-                newPrecipitation[forecastIndex] = max(0.0, result.newPrecipitation);
-                precipitationRate[forecastIndex] = max(0.0, ScaledValueForTypeAndTemp(result.type, result.precipitationRate, result.temperature));
-                pressure[forecastIndex] = result.pressure;
-                temperature[forecastIndex] = static_cast<int16_t>(result.temperature);
-                totalCloudCover[forecastIndex] = static_cast<uint16_t>(result.totalCloudCover);
-                totalPrecipitation[forecastIndex] = max(0.0, result.totalPrecipitation);
-                totalSnow[forecastIndex] = result.totalSnow = max(lastResult.totalSnow, result.totalSnow);
-                visibility[forecastIndex] = static_cast<uint16_t>(result.visibility);
-                windDirection[forecastIndex] = static_cast<uint16_t>(result.WindDirection());
-                windSpeed[forecastIndex] = static_cast<uint16_t>(wxModel == WeatherModel::HRRR ? result.windSpeed : result.WindSpeed());
+                location.wx[forecastIndex] = WxSingle {
+                    .dewpoint = static_cast<int16_t>(result.dewpoint),
+                    .gust = static_cast<uint16_t>(result.gust),
+                    .lightning = static_cast<uint16_t>(result.lightning),
+                    .newPrecipitation = max(0.0, result.newPrecipitation),
+                    .precipitationRate = max(0.0, ScaledValueForTypeAndTemp(result.type, result.precipitationRate, result.temperature)),
+                    .pressure = result.pressure,
+                    .temperature = static_cast<int16_t>(result.temperature),
+                    .totalCloudCover = static_cast<uint16_t>(result.totalCloudCover),
+                    .totalPrecipitation = max(0.0, result.totalPrecipitation),
+                    .totalSnow = result.totalSnow = max(lastResult.totalSnow, result.totalSnow),
+                    .visibility = static_cast<uint16_t>(result.visibility),
+                    .windDirection = static_cast<uint16_t>(result.WindDirection()),
+                    .windSpeed = static_cast<uint16_t>(wxModel == WeatherModel::HRRR ? result.windSpeed : result.WindSpeed())
+                };
 
                 lastResult = result;
             }
-
-            jWx["dewpoint"] = dewpoint;
-            jWx["precipRate"] = precipitationRate; 
-            jWx["precipType"] = precipitationType; 
-            jWx["gust"] = gust; 
-            jWx["lightning"] = lightning; 
-            jWx["newPrecip"] = newPrecipitation;
-            jWx["pressure"] = pressure; 
-            jWx["temperature"] = temperature; 
-            jWx["totalCloudCover"] = totalCloudCover; 
-            jWx["totalPrecip"] = totalPrecipitation;
-            jWx["totalSnow"] = totalSnow;
-            jWx["vis"] = visibility;
-            jWx["windDir"] = windDirection;
-            jWx["windSpd"] = windSpeed;
-
-            jLocation["coords"] = jCoords;
-            jLocation["sun"] = jSunriseSunset;
-            jLocation["wx"] = jWx;
-            jLocation["isCity"] = location.isCity;
-
-            #pragma omp critical
-            jLocations[location.name] = jLocation;
+            
+            forecastRepo->AddLocation(locationKey, location);
+            free(location.wx);
+            free(location.suns);
         }
-        root["locations"] = jLocations;
-        root["moon"] = jLunarPhase;
-        root["forecastTimes"] = jForecastTimes;
     }
 
 public:
     GribReader(string gribPathTemplate, const SelectedRegion& selectedRegion, WeatherModel wxModel, system_clock::time_point forecastStartTime, uint16_t skipToGribNumber, uint16_t maxGribIndex, GeographicCalcs& geoCalcs) 
-        : gribPathTemplate(gribPathTemplate), geoBounds(selectedRegion.GetRegionBoundsWithOverflow()), locations(selectedRegion.GetAllLocations()), wxModel(wxModel), forecastStartTime(forecastStartTime), skipToGribNumber(skipToGribNumber), maxGribIndex(maxGribIndex), geoCalcs(geoCalcs)
+        : gribPathTemplate(gribPathTemplate), geoBounds(selectedRegion.GetRegionBoundsWithOverflow()), locations(selectedRegion.GetAllLocations()), wxModel(wxModel), forecastStartTime(forecastStartTime), skipToGribNumber(skipToGribNumber), maxGribIndex(maxGribIndex), totalDays(0), geoCalcs(geoCalcs)
     {
         if(this->geoBounds.leftLon < 0)
             this->geoBounds.leftLon += 360;
@@ -511,11 +475,11 @@ public:
             this->geoBounds.rightLon += 360;
     }    
 
-    void CollectData(Json::Value& root, std::unique_ptr<GribData>& gribData)
+    void CollectData(unique_ptr<IForecastRepo>& forecastRepo, std::unique_ptr<GribData>& gribData)
     {
-        Initalize();
+        Initalize(forecastRepo);
         gribData = unique_ptr<GribData>(GetCompiledGribData());
-        GenerateForecastJson(gribData, root);
+        GenerateForecast(gribData, forecastRepo);
 
         cout << "Done collecting Grib data!" << endl;
     }

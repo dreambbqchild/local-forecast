@@ -7,10 +7,10 @@ use std::{ptr, slice};
 use std::sync::Mutex;
 use interop::c_structs;
 use interop::string_tools::CCharToString;
-use wx_enums::moon_phases::MoonPhase;
+use wx_enums::lunar_phases::LunarPhase;
 use once_cell::sync::Lazy;
 
-use rust_structs::{Forecast, Location, Moon};
+use rust_structs::{Forecast, Location};
 
 pub mod interop;
 pub mod rust_structs;
@@ -64,7 +64,7 @@ fn load_forecast_from_file<P: AsRef<Path>>(path: P) -> std::io::Result<Forecast>
 }
 
 fn safe_forecast_to_file<P: AsRef<Path>>(forecast: &Forecast, path: P) -> std::io::Result<()> {
-    let file = File::open(path)?;
+    let file = File::create(path)?;
     let writer = BufWriter::new(file);
     serde_json::to_writer(writer, forecast)?;
     Ok(())
@@ -104,13 +104,10 @@ pub extern "C" fn forecast_repo_add_forecast_start_time(forecast_c_str: *const c
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn forecast_repo_add_lunar_phase(forecast_c_str: *const c_char, day: i32, moon_ptr: *const c_structs::Moon) {
+pub extern "C" fn forecast_repo_add_lunar_phase(forecast_c_str: *const c_char, day: i32, lunar_phase: u8) {
     with_forecast(forecast_c_str, |f| {
-        let moon: &c_structs::Moon = unsafe { &*moon_ptr };
-
-        let phase = MoonPhase::try_from(moon.phase).unwrap();
-
-        f.moon.insert(day.to_string(), Moon{ phase });
+        let phase = LunarPhase::try_from(lunar_phase).unwrap();
+        f.phases.insert(day.to_string(), phase );
     });
 }
 
@@ -139,7 +136,7 @@ pub extern "C" fn forecast_repo_add_location(forecast_c_str: *const c_char, loca
 #[unsafe(no_mangle)]
 pub extern "C" fn forecast_repo_get_forecast(forecast_c_str: *const c_char) -> *mut c_structs::Forecast {
     let mut has_result = false;
-    let mut result = c_structs::Forecast { forecast_times: ptr::null_mut(), forecast_times_len: 0, locations: ptr::null_mut(), locations_len: 0, moons: ptr::null_mut(), moons_len: 0 };
+    let mut result = c_structs::Forecast {now: 0, forecast_times: ptr::null_mut(), forecast_times_len: 0, locations: ptr::null_mut(), locations_len: 0, phases: ptr::null_mut(), phases_len: 0 };
     with_forecast(forecast_c_str, |f| {        
         has_result = true;
         result = c_structs::Forecast::from(f);
@@ -154,4 +151,16 @@ pub extern "C" fn forecast_repo_free_forecast(forecast: *mut c_structs::Forecast
         return;
     }
     unsafe { drop(Box::from_raw(forecast)); }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn forecast_repo_free(forecast_c_str: *const c_char) {
+    if forecast_c_str.is_null() {
+        return;
+    }
+
+    let forecast_str = forecast_c_str.to_string_safe();
+
+    let mut map = FORECAST_DATA.lock().unwrap();
+    map.remove(&forecast_str);
 }

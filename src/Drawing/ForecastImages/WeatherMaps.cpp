@@ -1,12 +1,14 @@
 #include "Characters.h"
-#include "Data/ForecastJsonExtension.h"
+#include "Data/ForecastRepo.h"
 #include "DateTime.h"
 #include "Drawing/ForecastImages/ImageBase.h"
 #include "Drawing/ForecastImages/MapOverlay.h"
 #include "Drawing/ImageCache.h"
 #include "Drawing/WxColors.h"
+#include "NumberFormat.h"
 #include "WeatherMaps.h"
 
+#include <format>
 #include <iostream>
 
 using namespace std;
@@ -17,7 +19,7 @@ static const DSRect mapBackgroundRect = {0, 0, 1124, 1164};
 class WeatherMaps : public IWeatherMaps
 {
 private:
-    Json::Value& root;
+    const unique_ptr<IForecast>& forecast;
     const unique_ptr<GribData>& gribData;
     fs::path forecastDataOutputDir;
     shared_ptr<IImage> mapBackground;
@@ -31,7 +33,7 @@ void SetupForecastImageTextContext(IDrawTextContext* textContext)
     textContext->SetTextStrokeColorWithThickness(PredefinedColors::black, 3.0);
 }
 
-void FinishImage(const char* label, int32_t forecastIndex, unique_ptr<IMapOverlay>& mapOverlay, string path)
+void FinishImage(const char* label, int32_t forecastIndex, const vector<unique_ptr<ILocation>>& locations, unique_ptr<IMapOverlay>& mapOverlay, string path)
 {
     const int32_t marginOffset = 32;
 
@@ -40,24 +42,19 @@ void FinishImage(const char* label, int32_t forecastIndex, unique_ptr<IMapOverla
     auto bgSize = mapBackground->GetSize();
     auto locationDrawService = shared_ptr<IDrawService>(AllocDrawService(mapSize.width, mapSize.height));
     locationDrawService->SetDropShadow({4.0, -4.0}, 0.0);
-    for(auto itr = root["locations"].begin(); itr != root["locations"].end(); itr++)
+    for(auto& location : locations)
     {
-        if(!(*itr)["isCity"].asBool())
-            continue;
-
-        auto x = (*itr)["coords"]["x"].asInt();
-        auto y = (*itr)["coords"]["y"].asInt();
-        auto wx = (*itr)["wx"];
-        auto temperature =wx["temperature"][forecastIndex].asInt();
+        auto coords = location->GetCoords();
+        auto wx = location->GetForecastAt(forecastIndex);        
 
         locationDrawService->DrawText([&](IDrawTextContext* textContext)
         {
             SetupForecastImageTextContext(textContext);
-            textContext->AddText(to_string(temperature) + "ºF");
-            textContext->AddImage(GetSkyEmojiPathFromWxJson(wx, forecastIndex));
+            textContext->AddText(to_string(wx.temperature) + "ºF");
+            textContext->AddImage(Emoji::GetSkyEmojiPath(wx.totalCloudCover, wx.lightning != 0, static_cast<PrecipitationType>(wx.precipitationType), wx.precipitationRate));
             auto textBounds = textContext->Bounds();
 
-            return DSRect {x - textBounds.width * 0.5, static_cast<double>(y), textBounds.width, textBounds.height};
+            return DSRect {coords.x - textBounds.width * 0.5, static_cast<double>(coords.y), textBounds.width, textBounds.height};
         });
     }  
 
@@ -70,7 +67,7 @@ void FinishImage(const char* label, int32_t forecastIndex, unique_ptr<IMapOverla
     drawService->DrawCroppedImage(locationDrawService, croppingBounds, targetBounds);
 
     //Add the final text to the rendered image;
-    auto forecastTime = root["forecastTimes"][forecastIndex].asInt64();
+    auto forecastTime = forecast->GetForecastTime(forecastIndex);
     drawService->SetDropShadow({4.0, -4.0}, 0.0);    
     drawService->DrawText([&](IDrawTextContext* textContext)
     {
@@ -98,8 +95,8 @@ void FinishImage(const char* label, int32_t forecastIndex, unique_ptr<IMapOverla
 }
 
 public:
-    WeatherMaps(Json::Value& root, const unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
-        : root(root), gribData(gribData), geoCalcs(geoCalcs)
+    WeatherMaps(const unique_ptr<IForecast>& forecast, const unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
+        : forecast(forecast), gribData(gribData), geoCalcs(geoCalcs)
     {
         mapBackground = shared_ptr<IImage>(AllocImage(fs::path("media") / string("images") / mapBackgroundFile));
     }
@@ -111,12 +108,13 @@ public:
         this->forecastDataOutputDir = forecastDataOutputDir;
 
         auto overlayBounds = geoCalcs.Bounds();
+        auto locations = forecast->GetLocations(LocationMask::Cities);
 
         #pragma omp parallel for
         for(auto forecastIndex = 0; forecastIndex < gribData->GetNumberOfFiles(); forecastIndex++)
         {
             auto forecastQuads = gribData->GetQuadIteratorForFileIndex(forecastIndex);
-            auto imgSuffix = root["forecastSuffixes"][forecastIndex].asString();
+            auto imgSuffix = ToStringWithPad(3, '0', forecastIndex);
             string temperatureFileName = "temperature-" + imgSuffix + ".png",
                    precipFileName = "precip-" + imgSuffix + ".png";
 
@@ -153,15 +151,15 @@ public:
                 precipImg->InterpolateFill(topLeft, topRight, bottomLeft, bottomRight);
             }
 
-            FinishImage("Temperature", forecastIndex, temperatureImg, temperatureFileName);
-            FinishImage("Precipitation", forecastIndex, precipImg, precipFileName);
+            FinishImage("Temperature", forecastIndex, locations, temperatureImg, temperatureFileName);
+            FinishImage("Precipitation", forecastIndex, locations, precipImg, precipFileName);
         }
     }
 
     virtual ~WeatherMaps() = default;
 };
 
-IWeatherMaps* AllocWeatherMaps(Json::Value& root, const unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
+IWeatherMaps* AllocWeatherMaps(const unique_ptr<IForecast>& forecast, const unique_ptr<GribData>& gribData, GeographicCalcs& geoCalcs, const string& mapBackgroundFile)
 {
-    return new WeatherMaps(root, gribData, geoCalcs, mapBackgroundFile);
+    return new WeatherMaps(forecast, gribData, geoCalcs, mapBackgroundFile);
 }

@@ -1,6 +1,5 @@
 #include "PersonalForecasts.h"
 #include "Characters.h"
-#include "Data/ForecastJsonExtension.h"
 #include "DateTime.h"
 #include "Drawing/WxColors.h"
 #include "NumberFormat.h"
@@ -173,21 +172,13 @@ void DrawWithColor(IDrawTextContext* textContext, int32_t iValue, string strValu
     textContext->SetTextFillColor(white);
 }
 
-void DrawWithColor(IDrawTextContext* textContext, double dValue, string strValue, string precipitationType)
+void DrawWithColor(IDrawTextContext* textContext, double dValue, string strValue, PrecipitationType precipitationType)
 {
-    if(TestDouble(dValue) && precipitationType.length())
+    if(TestDouble(dValue))
     {
-        auto type = PrecipitationType::NoPrecipitation;
-        if(precipitationType == "ice")
-            type = PrecipitationType::FreezingRain;
-        else if(precipitationType == "rain")
-            type = PrecipitationType::Rain;
-        else if(precipitationType == "snow")
-            type = PrecipitationType::Snow;        
-
-        if(type != PrecipitationType::NoPrecipitation)
+        if(precipitationType != PrecipitationType::NoPrecipitation)
         {
-            auto color = ColorFromPrecipitation(type, dValue);
+            auto color = ColorFromPrecipitation(precipitationType, dValue);
             textContext->SetTextFillColor(color);
             if(ContrastRatio(color, discordBg) < 5)
                 textContext->SetTextStrokeColorWithThickness({255, 255, 255, 200}, 1.5);
@@ -204,7 +195,7 @@ void DrawWithColor(IDrawTextContext* textContext, double dValue, string strValue
     textContext->SetTextStrokeColorWithThickness(PredefinedColors::white, 0);
 }
 
-DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawService>& draw, Json::Value& root, Json::Value& location, double xOffset, double areaWidth, system_clock::time_point& now, vector<double>& columnXs, int32_t maxRows)
+DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawService>& draw, unique_ptr<ILocation>& location, double xOffset, double areaWidth, system_clock::time_point& now, vector<double>& columnXs, int32_t maxRows)
 {
     int32_t dayCounter = 0;
     system_clock::time_point sunrise, sunset;
@@ -214,8 +205,11 @@ DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawServi
 
     draw->ClearCanvas(discordBg);
     draw->SetDropShadow({5.0, -5.0}, 5.0);
-
-    auto rowsRendered = GetForecastsFromNow(root, now, maxRows, [&](system_clock::time_point& forecastTime, int32_t forecastIndex)
+    
+    const WxSingle* wxLast = nullptr;
+    auto suns = location->GetSunriseSunsets();
+    auto sunItr = suns.begin();
+    auto rowsRendered = location->GetForecastsFromNow(now, maxRows, [&](system_clock::time_point& forecastTime, const WxSingle* wxCurrent)
     {
         if((system_clock::to_time_t(forecastTime) + timezone) % 86400 == 0)
             dayCounter++;
@@ -233,14 +227,24 @@ DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawServi
 
             if(!forecastDate.length())
             {
+                auto tm = ToLocalTm(forecastTime);
                 forecastDate = GetShortDate(forecastTime);
-                GetSunriseSunset(location["sun"], forecastDate, sunrise, sunset);
+
+                while(sunItr->day != tm.tm_mday)
+                    sunItr++;
+
+                sunrise = system_clock::from_time_t(sunItr->sun.rise);
+                sunset = system_clock::from_time_t(sunItr->sun.set);
             }
 
             if(!isMeasurePass && currentDate != forecastDate)
             {
                 forecastDate = currentDate;
-                GetSunriseSunset(location["sun"], forecastDate, sunrise, sunset);
+                
+                sunItr++;
+                sunrise = system_clock::from_time_t(sunItr->sun.rise);
+                sunset = system_clock::from_time_t(sunItr->sun.set);
+                
                 dayLabels.push_back({ GetShortDayOfWeek(forecastTime) + " " + forecastDate, {xOffset, TABLE_TOP + forecastTableSize.height, areaWidth, ROW_HEIGHT }});
                 forecastTableSize.height += ROW_HEIGHT;
             }               
@@ -249,43 +253,42 @@ DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawServi
             while(shortHour.length() < 4)
                 shortHour = " " + shortHour;
 
-            auto wx = location["wx"];
-            auto hourTotal = CalcPrecipAmount(wx, forecastIndex);
+            auto hourTotal = CalcPrecipAmount(wxCurrent, wxLast);
             
             //Time
             textContext->AddText(shortHour);
 
             //Day/Night/Visibility
             DivideColumn(textContext, isMeasurePass, columnXs, columnCountForMeasure);
-            textContext->AddImage(Emoji::Path(GetVisibilityEmoji(wx["vis"][forecastIndex].asInt(), forecastTime, sunrise, sunset)));
+            textContext->AddImage(Emoji::Path(GetVisibilityEmoji(wxCurrent->visibility, forecastTime, sunrise, sunset)));
             
             //Temperature Dewpoint
             DivideColumn(textContext, isMeasurePass, columnXs, columnCountForMeasure);
-            auto iValue = wx["temperature"][forecastIndex].asInt();
+            auto iValue = wxCurrent->temperature;
             DrawWithColor(textContext, iValue, ToStringWithPad(3, ' ', iValue), ColorFromDegrees);        
             textContext->AddText("/");
-            iValue = wx["dewpoint"][forecastIndex].asInt();
+            iValue = wxCurrent->dewpoint;
             DrawWithColor(textContext, iValue, ToStringWithPad(3, ' ', iValue), ColorFromDegrees);
             textContext->AddText(" ºF");
 
             //Sky Condition
             DivideColumn(textContext, isMeasurePass, columnXs, columnCountForMeasure);
-            textContext->AddImage(GetSkyEmojiPathFromWxJson(wx, forecastIndex));
+            textContext->AddImage(Emoji::GetSkyEmojiPath(wxCurrent->totalCloudCover, wxCurrent->lightning, static_cast<PrecipitationType>(wxCurrent->precipitationType), wxCurrent->precipitationRate));
             
             //Precip
             DivideColumn(textContext, isMeasurePass, columnXs, columnCountForMeasure);
-            DrawWithColor(textContext, hourTotal, ToStringWithPrecision(2, hourTotal) + "\"", wx["precipType"][forecastIndex].asString());
+            DrawWithColor(textContext, hourTotal, ToStringWithPrecision(2, hourTotal) + "\"", static_cast<PrecipitationType>(wxCurrent->precipitationType));
 
             //Wind + Gust
             DivideColumn(textContext, isMeasurePass, columnXs, columnCountForMeasure);
-            textContext->AddText(Unicode::GetWindArrow(wx["windDir"][forecastIndex].asInt()) + string(" "));
-            iValue = wx["windSpd"][forecastIndex].asInt();
+            textContext->AddText(Unicode::GetWindArrow(wxCurrent->windDirection) + string(" "));
+            iValue = wxCurrent->windSpeed;
             DrawWithColor(textContext, iValue, ToStringWithPad(2, ' ', iValue), ColorFromWind);
 
-            if(max(0, wx["gust"][forecastIndex].asInt() - wx["windSpd"][forecastIndex].asInt()) > 5)
+            if(max(0, wxCurrent->gust - wxCurrent->windSpeed) > 5)
             {
                 textContext->AddText(" ");
-                iValue = wx["gust"][forecastIndex].asInt();
+                iValue = wxCurrent->gust;
                 textContext->SetFontOptions(FontOptions::Bold);
                 DrawWithColor(textContext, iValue, ToStringWithPad(2, ' ', iValue), ColorFromWind);
                 textContext->SetFontOptions(FontOptions::Regular);
@@ -297,9 +300,10 @@ DSSize RenderHourlyForecastForLocation(bool isMeasurePass, unique_ptr<IDrawServi
 
             //Barometric Pressure
             DivideColumn(textContext, isMeasurePass, columnXs, columnCountForMeasure);
-            textContext->AddText(ToStringWithPrecision(2, wx["pressure"][forecastIndex].asDouble()) + string("\" "));
+            textContext->AddText(ToStringWithPrecision(2, wxCurrent->pressure) + string("\" "));
 
             auto size = textContext->Bounds();
+            wxLast = wxCurrent;
             return CalcRectForCenteredLocation(size, {size.width, ROW_HEIGHT}, {xOffset, TABLE_TOP + forecastTableSize.height});
         });
 
@@ -391,21 +395,19 @@ void RenderSummaryImageForLocation(unique_ptr<IDrawService>& draw, const Summary
 
 void PersonalForecasts::RenderAll(fs::path forecastDataOutputDir, int32_t maxRows)
 {
-    vector<Json::Value> locations;
     vector<double> columnXs;
     vector<SummaryData> summaryDatum;
     auto xOffset = 0.0, forecastAreaWidth = 0.0;
-    auto now = system_clock::from_time_t(root["now"].asInt64());
+    auto now = system_clock::from_time_t(forecast->GetNow());
     uint32_t imageHeight = INT16_MAX;
 
-    GetSortedPlaceLocationsFrom(root, locations);
-
+    auto locations = forecast->GetSortedPlaceLocations();
     summaryDatum.resize(locations.size());
 
     //Measure Pass
     {
         auto draw = unique_ptr<IDrawService>(AllocDrawService(totalWidth, imageHeight));
-        auto size = RenderHourlyForecastForLocation(true, draw, root, locations.at(0), 0, 0, now, columnXs, maxRows);
+        auto size = RenderHourlyForecastForLocation(true, draw, locations.at(0), 0, 0, now, columnXs, maxRows);
         xOffset = totalWidth - size.width;
         forecastAreaWidth = size.width;
         imageHeight = max(defaultImageHeight, static_cast<uint32_t>(ceil(size.height)));
@@ -415,21 +417,20 @@ void PersonalForecasts::RenderAll(fs::path forecastDataOutputDir, int32_t maxRow
         d += xOffset;
 
     //Arrange Pass
-    //#pragma omp parallel for //Emojis bounce when this is on. Don't know why.
-    for(auto location : locations)
+    auto index = 0;
+    for(auto& location : locations)
     {
-        auto draw = unique_ptr<IDrawService>(AllocDrawService(totalWidth, imageHeight));
-        auto index = location["index"].asInt();
+        auto draw = unique_ptr<IDrawService>(AllocDrawService(totalWidth, imageHeight));        
         
-        #pragma omp critical
-        cout << "Rendering Personal Forecast for: " << location["id"].asString() << " (" << index << ")" << endl;
+        cout << "Rendering Personal Forecast for: " << location->GetId() << " (" << index << ")" << endl;
         
-        RenderHourlyForecastForLocation(false, draw, root, location, xOffset, forecastAreaWidth, now, columnXs, maxRows);
+        RenderHourlyForecastForLocation(false, draw, location, xOffset, forecastAreaWidth, now, columnXs, maxRows);
         
-        auto& summaryData = summaryDatum[index];
-        CollectSummaryDataForLocation(location["id"].asString(), summaryData, root, location, maxRows);
-        RenderSummaryImageForLocation(draw, summaryData, now, { xOffset, static_cast<double>(imageHeight) }, maxRows);
+        location->CollectSummaryData(summaryDatum[index], maxRows);
+        RenderSummaryImageForLocation(draw, summaryDatum[index], now, { xOffset, static_cast<double>(imageHeight) }, maxRows);
 
         draw->Save(forecastDataOutputDir / GenerateFileName(index));
+
+        index++;
     }
 }

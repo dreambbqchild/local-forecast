@@ -1,11 +1,13 @@
 #include "Error.h"
 #include "SelectedRegion.h"
+#include "Drawing/ForecastImages/RegionalForecast.h"
 
 #include <fstream>
 #include <json/json.h>
 #include <limits>
 
 using namespace std;
+namespace fs = std::filesystem;
 
 void GetGeoBoundsFromJsonValue(WeatherModel wxModel, GeoBounds& geoBounds, Json::Value& bounds)
 {
@@ -73,12 +75,30 @@ SelectedRegion::SelectedRegion(WeatherModel wxModel, string key)
     for(auto& jLocation : locations)
     {
         Location location {
-            .name = jLocation["name"].asString(),
-            .lat = jLocation["lat"].asDouble(),
-            .lon = jLocation["lon"].asDouble(),
-            .isCity = jLocation["isCity"].asBool()
+            .coords {
+                .lat = jLocation["lat"].asDouble(),
+                .lon = jLocation["lon"].asDouble()
+            },
+            .isCity = jLocation["isCity"].asBool(),
+            .suns = nullptr,
+            .sunsLen = 0,
+            .wx = nullptr,
+            .wxLen = 0
         };
 
-        allLocations.push_back(location);
+        allLocations.push_back({jLocation["name"].asString(), location});
     }
+}
+
+void SelectedRegion::RenderRegionalForecastPaths(fs::path& pathToJson, fs::path& pathToPng) const
+{
+    fs::path openweatherPath = fs::path("forecasts") / GetOutputFolder();
+    pathToJson = openweatherPath / string("openweather.json");
+    pathToPng = openweatherPath /  string("openweather.png");
+}
+
+void SelectedRegion::RenderRegionalForecast(const fs::path& pathToJson, const fs::path& pathToPng) const
+{
+    RegionalForecast regionalForecast;
+    regionalForecast.Render(*this, pathToJson, pathToPng);
 }

@@ -14,7 +14,7 @@ pub fn create_c_array<T>(num_elements: usize) -> *mut T {
 }
 
 pub fn copy_c_array<T>(dest: *mut T,  src: *const T, num_elements: usize) -> *mut T {
-    unsafe { memcpy(dest as *mut c_void, src as *const c_void, num_elements) };
+    unsafe { memcpy(dest as *mut c_void, src as *const c_void, num_elements * mem::size_of::<T>()) };
     dest
 }
 

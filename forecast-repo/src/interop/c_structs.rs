@@ -1,7 +1,7 @@
-use std::{ffi::c_char, slice::from_raw_parts_mut};
+use std::{ffi::c_char, slice::from_raw_parts_mut, u8, time::SystemTime};
 use serde::{Deserialize, Serialize};
 
-use crate::{rust_structs, wx_enums::precipitation_type::PrecipitationType, interop::string_tools::ToByteString};
+use crate::{interop::string_tools::ToByteString, rust_structs, wx_enums::{precipitation_type::PrecipitationType}};
 
 use super::c::{copy_c_array, create_c_array, free_c_array};
 
@@ -69,14 +69,9 @@ pub struct LabeledSun {
 }
 
 #[repr(C)]
-pub struct Moon {
-    pub phase: u8
-}
-
-#[repr(C)]
-pub struct LabeledMoon {
+pub struct LabeledLunarPhase {
     pub day: i32,
-    pub moon: Moon
+    pub phase: u8
 }
 
 #[repr(C)]
@@ -142,16 +137,19 @@ impl LabeledLocation {
 
 #[repr(C)]
 pub struct Forecast {
+    pub now: u64,
     pub forecast_times: *mut u64,
     pub forecast_times_len: usize,
     pub locations: *mut LabeledLocation,
     pub locations_len: usize,
-    pub moons: *mut LabeledMoon,
-    pub moons_len: usize
+    pub phases: *mut LabeledLunarPhase,
+    pub phases_len: usize
 }
 
 impl Forecast {
     pub fn from(f: &rust_structs::Forecast) -> Self {
+        let time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+
         let forecast_times = create_c_array::<u64>(f.forecast_times.len());
         let forecast_times_len = f.forecast_times.len();
         copy_c_array(forecast_times, f.forecast_times.as_ptr(), f.forecast_times.len());
@@ -162,18 +160,18 @@ impl Forecast {
             unsafe {*locations.add(location_index) = LabeledLocation::from(l, key) };
         }
 
-        let moons = create_c_array::<LabeledMoon>(f.moon.len());
-        let moons_len= f.moon.len();
+        let phases = create_c_array::<LabeledLunarPhase>(f.phases.len());
+        let phases_len= f.phases.len();
 
-        for (moon_index, (key, m)) in f.moon.iter().enumerate() {
-            unsafe {*moons.add(moon_index) = LabeledMoon {
+        for (moon_index, (key, p)) in f.phases.iter().enumerate() {
+            unsafe {*phases.add(moon_index) = LabeledLunarPhase {
                     day: key.parse::<i32>().unwrap(),
-                    moon: Moon{ phase: m.phase.clone() as u8 }
+                    phase: p.clone() as u8
                 };
             }
         }
 
-        Forecast { forecast_times, forecast_times_len, locations, locations_len, moons, moons_len }    
+        Forecast { now: time.as_secs(), forecast_times, forecast_times_len, locations, locations_len, phases, phases_len }    
     }
 
     pub fn free(&mut self) {
@@ -185,7 +183,7 @@ impl Forecast {
             location.free();
         }
 
-        free_c_array(self.moons);
+        free_c_array(self.phases);
         free_c_array(self.locations);
     }
 }

@@ -80,7 +80,7 @@ public:
     {
         vector<int32_t> indexes;
         vector<GeoCoordPoint> nearPoints;
-        GeoCoord geoPt = {location.lat, location.lon};
+        GeoCoord geoPt = {location.coords.lat, location.coords.lon};
         if(geoPt.lon < 0)
             geoPt.lon += 360;
 
