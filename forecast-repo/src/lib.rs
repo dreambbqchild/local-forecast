@@ -107,7 +107,7 @@ pub extern "C" fn forecast_repo_add_forecast_start_time(forecast_c_str: *const c
 pub extern "C" fn forecast_repo_add_lunar_phase(forecast_c_str: *const c_char, day: i32, lunar_phase: u8) {
     with_forecast(forecast_c_str, |f| {
         let phase = LunarPhase::try_from(lunar_phase).unwrap();
-        f.phases.insert(day.to_string(), phase );
+        f.phases.insert(format!("{:02}", day), phase );
     });
 }
 
@@ -123,8 +123,7 @@ pub extern "C" fn forecast_repo_add_location(forecast_c_str: *const c_char, loca
         let wx_slice = to_slice(location.wx, location.wx_len);
 
         for labeled_sun in sun_slice.iter() {
-            let key = labeled_sun.day.to_string();
-            l.sun.insert(key, labeled_sun.sun.clone());
+            l.sun.insert(format!("{:02}", labeled_sun.day), labeled_sun.sun.clone());
         }
 
         for (index, wx) in wx_slice.iter().enumerate() {

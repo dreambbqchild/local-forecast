@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Serialize, Deserialize};
 
@@ -70,13 +70,13 @@ impl Wx {
 pub struct Location {
     pub coords: Coords,
     pub is_city: bool,
-    pub sun: HashMap<String, Sun>,
+    pub sun: BTreeMap<String, Sun>,
     pub wx: Wx
 }
 
 impl Location {
     pub fn new(size: usize) -> Location {
-        Location { coords: Coords { lat: 0.0, lon: 0.0, x: 0, y: 0 }, is_city: false, sun: HashMap::new(), wx: Wx::new(size) }
+        Location { coords: Coords { lat: 0.0, lon: 0.0, x: 0, y: 0 }, is_city: false, sun: BTreeMap::new(), wx: Wx::new(size) }
     }
 }
 
@@ -85,11 +85,11 @@ impl Location {
 pub struct Forecast {
     pub forecast_times: Vec<u64>,
     pub locations: HashMap<String, Location>,
-    pub phases: HashMap<String, LunarPhase>
+    pub phases: BTreeMap<String, LunarPhase>
 }
 
 impl Forecast {
     pub fn new() -> Self {
-        Self { forecast_times: Vec::new(), locations: HashMap::new(), phases: HashMap::new() }
+        Self { forecast_times: Vec::new(), locations: HashMap::new(), phases: BTreeMap::new() }
     }
 }
