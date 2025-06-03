@@ -22,19 +22,17 @@ class MapOverlay : public IMapOverlay
 
         inline bool RenderableDataPoint(const MapOverlayPixel& data) { return (data.pt.x >= 0 && data.pt.y >= 0) || (data.pt.x <= width && data.pt.y <= height); }
 
-        inline uint32_t* GetPixelInternal(DoublePoint pt)
+        inline uint32_t* GetPixelInternal(DSUInt16Point pt)
         {
             if(pt.x < 0 || pt.y < 0 || pt.x >= width || pt.y >= height)
                 return nullptr;
             else
-                return reinterpret_cast<uint32_t*>(bitmapContext->GetPointer({static_cast<uint16_t>(pt.x), static_cast<uint16_t>(pt.y)}));
+                return reinterpret_cast<uint32_t*>(bitmapContext->GetPointer(pt));
         }
-
-        inline uint32_t* GetPixelInternal(double dx, double dy) { return GetPixelInternal({dx, dy}); }
 
         inline void SetPixelInternal(DoublePoint pt, const DSColor& color)
         {
-            uint32_t* px = GetPixelInternal(pt);
+            uint32_t* px = GetPixelInternal({static_cast<uint16_t>(pt.x), static_cast<uint16_t>(pt.y)});
             if(!px)
                 return;
 
