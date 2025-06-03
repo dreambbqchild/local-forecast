@@ -33,6 +33,7 @@ public:
 class OutMediaContainer : public MediaContainerBase
 {
 private:
+    bool isOpen = false;
     std::string fileName;
     std::unique_ptr<OutVideoStream> videoStream;
     std::unique_ptr<OutAudioStream> audioStream;
@@ -46,6 +47,7 @@ public:
 
     inline bool IsVideoSupported(){ return formatContext->oformat->video_codec != AV_CODEC_ID_NONE; }
     inline bool IsAudioSupported(){ return formatContext->oformat->audio_codec != AV_CODEC_ID_NONE; }
+    inline bool IsOpen(){ return isOpen; }
 
     void AllocVideoStream(int64_t bitrate, int32_t width, int32_t height, AVRational timeBase, AVPixelFormat pxFormat = AV_PIX_FMT_YUV420P);
     void AllocAudioStream(std::shared_ptr<InAudioStream> inAudioStream);

@@ -194,7 +194,7 @@ private:
             cout << "Rendering " << map << " frames..." << endl;
             forecast->GetForecastsFromNow(now, UINT32_MAX, [&](system_clock::time_point& forecastTime, int32_t forecastIndex)
             {
-                encoder->EncodeImagesFittingPattern(forecastFilePath / (map + ToStringWithPad(3, '0', forecastIndex) + ".png"), 2);
+                encoder->EncodeImagesFittingPattern(forecastFilePath / (map + "-" + ToStringWithPad(3, '0', forecastIndex) + ".png"), 2, forecastFilePath / "bg.png");
             });
         }
 

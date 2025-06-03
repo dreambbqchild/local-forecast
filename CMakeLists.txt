@@ -60,6 +60,7 @@ add_library(localforecast SHARED
     src/Text/SummaryForecast.cpp
     src/Video/Encoder.cpp
     src/Video/AudioStream.cpp
+    src/Video/LayeredFrameBuilder.cpp
     src/Video/MediaContainer.cpp
     src/Video/StreamBase.cpp
     src/Video/VideoStream.cpp
@@ -74,7 +75,8 @@ set_property (TARGET localforecast APPEND_STRING PROPERTY COMPILE_FLAGS "-fobjc-
 target_link_libraries(localforecast
     ${CMAKE_SOURCE_DIR}/forecast-repo/target/${RUST_TARGET}/debug/libforecast_repo.a
     avcodec
-    avformat
+    avfilter
+    avformat    
     curl
     eccodes
     GeographicLib

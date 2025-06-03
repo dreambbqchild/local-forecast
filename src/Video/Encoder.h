@@ -12,10 +12,10 @@ struct FPS
 class IEncoder 
 {
 public:
-    virtual void UseAudioFile(const char* audioPath) = 0;
-    inline void UseAudioFile(std::string audioPath) { UseAudioFile(audioPath.c_str());}
-    virtual void EncodeImagesFittingPattern(const char* pattern, int32_t frameDuration = 1) = 0;
-    inline void EncodeImagesFittingPattern(std::string pattern, int32_t frameDuration = 1) { EncodeImagesFittingPattern(pattern.c_str(), frameDuration); }
+    virtual void UseAudioFile(const std::string& audioPath) = 0;
+    virtual void EncodeImagesFittingPattern(const std::string& pattern, int32_t frameDuration, const std::string& background) = 0;
+    inline void EncodeImagesFittingPattern(const std::string& pattern, const std::string& background) { EncodeImagesFittingPattern(pattern, 1, background); };
+    virtual void EncodeImagesFittingPattern(const std::string& pattern, int32_t frameDuration = 1) = 0;
     virtual void Close() = 0;
     virtual ~IEncoder() = default;
 };

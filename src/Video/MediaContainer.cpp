@@ -20,7 +20,9 @@ void OutMediaContainer::Open()
     /* Write the stream header, if any. */
     ret = avformat_write_header(formatContext, nullptr);
     if (ret < 0)
-        ERR_OUT("Could not write header. " << av_err2str(ret));     
+        ERR_OUT("Could not write header. " << av_err2str(ret));
+
+    isOpen = true;
 }
 
 void OutMediaContainer::AllocVideoStream(int64_t bitrate, int32_t width, int32_t height, AVRational timeBase, AVPixelFormat pxFormat)
@@ -62,6 +64,8 @@ void OutMediaContainer::Close()
 
     av_write_trailer(formatContext);
     avio_closep(&formatContext->pb);
+
+    isOpen = false;
 }
 
 //--- InMediaContainer

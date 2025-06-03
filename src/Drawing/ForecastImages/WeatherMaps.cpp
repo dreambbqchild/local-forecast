@@ -33,7 +33,7 @@ void SetupForecastImageTextContext(IDrawTextContext* textContext)
     textContext->SetTextStrokeColorWithThickness(PredefinedColors::black, 3.0);
 }
 
-void FinishImage(const char* label, int32_t forecastIndex, const vector<unique_ptr<ILocation>>& locations, unique_ptr<IMapOverlay>& mapOverlay, string path)
+void FinishImage(const char* label, int32_t forecastIndex, const vector<unique_ptr<ILocation>>& locations, unique_ptr<IMapOverlay>& mapOverlay, string fileName)
 {
     const int32_t marginOffset = 32;
 
@@ -58,11 +58,20 @@ void FinishImage(const char* label, int32_t forecastIndex, const vector<unique_p
         });
     }  
 
-    auto drawService = unique_ptr<IDrawService>(AllocDrawService(defaultImageWidth, defaultImageHeight));
-    auto mapOverlayDraw = shared_ptr<IDrawService>(mapOverlay->GetBitmapContext()->ToDrawService());
+    unique_ptr<IDrawService> drawService;
     DSRect croppingBounds = { marginOffset, marginOffset, defaultImageWidth, defaultImageHeight };
     DSRect targetBounds = {0, 0, defaultImageWidth, defaultImageHeight};
-    drawService->DrawCroppedImage(mapBackground, croppingBounds, targetBounds);
+
+    if(forecastIndex == 0)
+    {
+        drawService = unique_ptr<IDrawService>(AllocDrawService(defaultImageWidth, defaultImageHeight));
+        drawService->DrawCroppedImage(mapBackground, croppingBounds, targetBounds);
+        drawService->Save(forecastDataOutputDir / "bg.png");
+    }
+
+    drawService = unique_ptr<IDrawService>(AllocDrawService(defaultImageWidth, defaultImageHeight));
+    auto mapOverlayDraw = shared_ptr<IDrawService>(mapOverlay->GetBitmapContext()->ToDrawService());
+    
     drawService->DrawCroppedImage(mapOverlayDraw, croppingBounds, targetBounds, 0.75);
     drawService->DrawCroppedImage(locationDrawService, croppingBounds, targetBounds);
 
@@ -91,7 +100,7 @@ void FinishImage(const char* label, int32_t forecastIndex, const vector<unique_p
         return renderBounds;
     });
 
-    drawService->Save(forecastDataOutputDir / path);
+    drawService->Save(forecastDataOutputDir / fileName);
 }
 
 public:
