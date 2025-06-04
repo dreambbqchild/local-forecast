@@ -45,7 +45,8 @@ inline int32_t GetInt(codes_handle* h, const char* property)
 inline double LocalForecast(const Vector2d& v, const LocalForecastPayload& payload)
 {
     double resultWeights[4] = {0};
-    BarycentricCoordinatesForCWTetrahedron(v, payload.bounds, resultWeights);
+    if(!BarycentricCoordinatesForCWTetrahedron(v, payload.bounds, resultWeights))
+        ERR_OUT("Forecast edge hit. Please choose another point.");
 
     return WeightValues4(payload.values, resultWeights);
 }
