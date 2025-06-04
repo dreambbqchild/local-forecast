@@ -42,7 +42,7 @@ class MapOverlay : public IMapOverlay
             *px = color.rgba;
         }
 
-        inline DSColor SetPxColorWithWeights(Vector2d& pt, DSColor values[4], double resultWeights[4])
+        inline void SetPxColorWithWeights(Vector2d& pt, DSColor values[4], double resultWeights[4])
         {
             uint8_t u8Values[4][4] {
                 {values[0].components.r, values[1].components.r, values[2].components.r, values[3].components.r},
@@ -61,7 +61,6 @@ class MapOverlay : public IMapOverlay
             };
 
             SetPixelInternal({static_cast<uint16_t>(pt.a[0]), static_cast<uint16_t>(pt.a[1])}, color);
-            return color;
         }
 
         //Small steps for the first and last to ensure pixel coloration around the borders of the trapazoid.
@@ -78,7 +77,6 @@ class MapOverlay : public IMapOverlay
             if(!RenderableDataPoint(topLeft) && !RenderableDataPoint(topRight) && !RenderableDataPoint(bottomLeft) && !RenderableDataPoint(bottomRight))
                 return;
 
-            DSColor lastColor = {};
             double yStart = CalcFillStart(topLeft.pt.y), 
                     xStart = CalcFillStart(bottomLeft.pt.x), 
                     yEnd = CalcFillEnd(bottomRight.pt.y, height),
@@ -97,13 +95,7 @@ class MapOverlay : public IMapOverlay
                 double resultWeights[4] = {0};
 
                 if(!BarycentricCoordinatesForCWTetrahedron(v, bounds, resultWeights))
-                {
-                    if(!lastColor.rgba)
-                        continue;
-
-                    SetPixelInternal({static_cast<uint16_t>(x), static_cast<uint16_t>(y)}, lastColor, true);
                     continue;
-                }
 
                 DSColor values[4] = {
                     {.rgba = topLeft.px.rgba}, 
@@ -112,7 +104,7 @@ class MapOverlay : public IMapOverlay
                     {.rgba = bottomLeft.px.rgba}
                 };
 
-                lastColor = SetPxColorWithWeights(v, values, resultWeights);
+                SetPxColorWithWeights(v, values, resultWeights);
             }
         }
 
