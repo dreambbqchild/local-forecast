@@ -241,7 +241,6 @@ private:
         //Read in files one at a time because that's the way it has to be due to eccodes.
         FOR_FORECASTS_IN_RANGE(i)
         {
-            cout << "Processing grib file index " << i << "..." << endl;
             string path(gribPathTemplate.length() + 2, '\0');
             snprintf((char*)path.c_str(), gribPathTemplate.length() + 2, gribPathTemplate.c_str(), i);
             

@@ -30,18 +30,19 @@ class MapOverlay : public IMapOverlay
                 return reinterpret_cast<uint32_t*>(bitmapContext->GetPointer(pt));
         }
 
-        inline void SetPixelInternal(DoublePoint pt, const DSColor& color)
-        {
-            uint32_t* px = GetPixelInternal({static_cast<uint16_t>(pt.x), static_cast<uint16_t>(pt.y)});
+        inline void SetPixelInternal(DSUInt16Point pt, const DSColor& color, bool skipIfPixelSet = false)
+        {        
+            uint32_t* px = GetPixelInternal(pt);
             if(!px)
+                return;
+
+            if(skipIfPixelSet && *px)
                 return;
 
             *px = color.rgba;
         }
 
-        inline void SetPixelInternal(double dx, double dy, const DSColor& color) { SetPixelInternal({dx, dy}, color); }
-
-        inline void SetPxColorWithWeights(Vector2d& pt, DSColor values[4], double resultWeights[4])
+        inline DSColor SetPxColorWithWeights(Vector2d& pt, DSColor values[4], double resultWeights[4])
         {
             uint8_t u8Values[4][4] {
                 {values[0].components.r, values[1].components.r, values[2].components.r, values[3].components.r},
@@ -59,13 +60,14 @@ class MapOverlay : public IMapOverlay
                 }                
             };
 
-            SetPixelInternal(pt.a[0], pt.a[1], color);
+            SetPixelInternal({static_cast<uint16_t>(pt.a[0]), static_cast<uint16_t>(pt.a[1])}, color);
+            return color;
         }
 
         //Small steps for the first and last to ensure pixel coloration around the borders of the trapazoid.
         inline double CalcNextStep(double v, double start, double end) { return v - start < 1.0 || end - v < 1.0 ? 0.25 : 1; }
-        inline double CalcFillStart(double v) { return max(0.0, floor(v));}
-        inline double CalcFillEnd(double v, double max) { return min(ceil(v), max); }
+        inline double CalcFillStart(double v) { return max(0.0, floor(v)) - 2;}
+        inline double CalcFillEnd(double v, double max) { return min(ceil(v), max) + 2; }
         
     public:
         MapOverlay(uint32_t width, uint32_t height) 
@@ -76,6 +78,7 @@ class MapOverlay : public IMapOverlay
             if(!RenderableDataPoint(topLeft) && !RenderableDataPoint(topRight) && !RenderableDataPoint(bottomLeft) && !RenderableDataPoint(bottomRight))
                 return;
 
+            DSColor lastColor = {};
             double yStart = CalcFillStart(topLeft.pt.y), 
                     xStart = CalcFillStart(bottomLeft.pt.x), 
                     yEnd = CalcFillEnd(bottomRight.pt.y, height),
@@ -83,7 +86,7 @@ class MapOverlay : public IMapOverlay
 
             for(auto y = yStart; y < yEnd; y += CalcNextStep(y, yStart, yEnd))
             for(auto x = xStart; x < xEnd; x += CalcNextStep(x, xStart, xEnd))
-            {                     
+            {     
                 Vector2d v = {x, y};
                 Vector2d bounds[4] = {
                     {topLeft.pt.x, topLeft.pt.y},
@@ -94,7 +97,13 @@ class MapOverlay : public IMapOverlay
                 double resultWeights[4] = {0};
 
                 if(!BarycentricCoordinatesForCWTetrahedron(v, bounds, resultWeights))
+                {
+                    if(!lastColor.rgba)
+                        continue;
+
+                    SetPixelInternal({static_cast<uint16_t>(x), static_cast<uint16_t>(y)}, lastColor, true);
                     continue;
+                }
 
                 DSColor values[4] = {
                     {.rgba = topLeft.px.rgba}, 
@@ -103,7 +112,7 @@ class MapOverlay : public IMapOverlay
                     {.rgba = bottomLeft.px.rgba}
                 };
 
-                SetPxColorWithWeights(v, values, resultWeights);
+                lastColor = SetPxColorWithWeights(v, values, resultWeights);
             }
         }
 
