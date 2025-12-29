@@ -1,7 +1,7 @@
 use std::{ffi::c_char, slice::from_raw_parts_mut, u8, time::SystemTime};
 use serde::{Deserialize, Serialize};
 
-use crate::{interop::string_tools::ToByteString, rust_structs, wx_enums::{precipitation_type::PrecipitationType}};
+use crate::{interop::string_tools::ToByteString, rust_structs, wx_serialization::{precipitation_type::PrecipitationType}};
 
 use super::c::{copy_c_array, create_c_array, free_c_array};
 
@@ -32,7 +32,7 @@ impl WxSingle {
             new_precip: wx.new_precip[at],
             precip_rate: wx.precip_rate[at],
             precip_type: PrecipitationType::bits(&wx.precip_type[at]),
-            pressure: wx.pressure[at],
+            pressure: wx.pressure[at].0,
             temperature: wx.temperature[at],
             total_cloud_cover: wx.total_cloud_cover[at],
             total_precip: wx.total_precip[at],

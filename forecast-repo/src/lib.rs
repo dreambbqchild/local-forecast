@@ -7,14 +7,14 @@ use std::{ptr, slice};
 use std::sync::Mutex;
 use interop::c_structs;
 use interop::string_tools::CCharToString;
-use wx_enums::lunar_phases::LunarPhase;
+use wx_serialization::lunar_phases::LunarPhase;
 use once_cell::sync::Lazy;
 
 use rust_structs::{Forecast, Location};
 
 pub mod interop;
 pub mod rust_structs;
-pub mod wx_enums;
+pub mod wx_serialization;
 
 static FORECAST_DATA: Lazy<Mutex<HashMap<String, Forecast>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 

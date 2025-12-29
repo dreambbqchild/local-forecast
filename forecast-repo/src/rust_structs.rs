@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{c_structs::{Coords, Sun, WxSingle}, wx_enums::{lunar_phases::LunarPhase, precipitation_type::PrecipitationType}};
+use crate::{c_structs::{Coords, Sun, WxSingle}, wx_serialization::{in_hg::InHg, lunar_phases::LunarPhase, precipitation_type::PrecipitationType}};
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -13,7 +13,7 @@ pub struct Wx {
     pub new_precip: Vec<f64>,
     pub precip_rate: Vec<f64>,
     pub precip_type: Vec<PrecipitationType>,
-    pub pressure: Vec<f64>,
+    pub pressure: Vec<InHg>,
     pub temperature: Vec<i16>,
     pub total_cloud_cover: Vec<u16>,
     pub total_precip: Vec<f64>,
@@ -32,7 +32,7 @@ impl Wx {
             new_precip: vec![0.0; size],
             precip_rate: vec![0.0; size],
             precip_type: vec![PrecipitationType::NoPrecipitation; size],
-            pressure: vec![0.0; size],
+            pressure: vec![InHg(0.0); size],
             temperature: vec![0; size],
             total_cloud_cover: vec![0; size],
             total_precip: vec![0.0; size],
@@ -50,7 +50,7 @@ impl Wx {
         self.new_precip[at] = single.new_precip;
         self.precip_rate[at] = single.precip_rate;
         self.precip_type[at] = PrecipitationType::from(single.precip_type);
-        self.pressure[at] = single.pressure;
+        self.pressure[at] = InHg(single.pressure);
         self.temperature[at] = single.temperature;
         self.total_cloud_cover[at] = single.total_cloud_cover;
         self.total_precip[at] = single.total_precip;
