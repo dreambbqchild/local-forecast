@@ -98,7 +98,7 @@ const now = new Date();
 const forecast = JSON.parse(fs.readFileSync(path.join(folder, 'forecast.json')));
 const tableData = [];
 let tableHtml = '<table><thead><tr><td></td>'
-for(const [name, location] of Object.entries(forecast.locations)) {
+for(const [name, location] of Object.entries(forecast.locations).sort((a, b) => (a[1].coords.y - b[1].coords.y) || (a[1].coords.x - b[1].coords.x))) {
     if(location.isCity)
         continue;
 
